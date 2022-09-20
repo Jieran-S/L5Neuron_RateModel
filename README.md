@@ -1,5 +1,7 @@
 # Firing Rate Model of V1, Layer 5
 
+This model of the V1, layer 5 includes Cortico-Cortical (CC), Cortico-Subcortical (CS), PV and SST neurons. Plasticity is not implemented yet. In this model, we observe orientation and direction selectivity.
+
 ### Requirements
 
 Use ```conda env create -f network.yml``` to unpack the conda environment. Or download with ```conda install <module>``` the requirements manually.
