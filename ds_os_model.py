@@ -7,15 +7,20 @@ import csv
 from joblib import Parallel, delayed
 import time
 import math
+import importlib
 
 import Implementation.network_model as nm
 from Implementation.helper import distributionInput, generate_connectivity, calculate_selectivity
-import config.parameter as p
+if len(sys.argv) != 0:
+    p = importlib.import_module(sys.argv[1])
+else:
+    import test_config as p
 
 np.random.seed(42)
 
 def run_simulation(input_cs, input_cc, input_pv, input_sst,
                    spatialF,temporalF,spatialPhase,amplitude,start_time,title):
+
     # network parameters
     N = p.N
     prob = p.prob
@@ -222,7 +227,6 @@ f.close()
 start_time = time.time()
 
 # use joblib to parallelize simulations with different parameter values
-# [0.0625,0.125,0.25,0.5,1,2,4,8,16]
 Parallel(n_jobs=p.jobs_number)(delayed(run_simulation)(input_cs, input_cc, input_pv, input_sst,
                                                        spatialF,temporalF,spatialPhase,amplitude,start_time,title)
                     for input_cs in p.input_cs
