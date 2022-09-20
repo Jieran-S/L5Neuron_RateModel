@@ -14,7 +14,6 @@ def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude,
     b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
 
     inputs = []
-
     if not (steady):
         for t in range(T):
             inputs.append(np.abs(amplitude * np.cos(
@@ -28,6 +27,7 @@ def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude,
 
     inputs = np.array(inputs)
 
+    # static input (if neurons don't receive moving bar input)
     if input_cs != 'bar':
         inputs[:, :N[0]] = input_cs
     if input_cc != 'bar':
