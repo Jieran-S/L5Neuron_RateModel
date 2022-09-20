@@ -19,7 +19,8 @@ else:
 np.random.seed(42)
 
 def run_simulation(input_cs, input_cc, input_pv, input_sst,
-                   spatialF,temporalF,spatialPhase,amplitude,start_time,title):
+                   spatialF,temporalF,spatialPhase,amplitude,
+                   start_time,title):
 
     # network parameters
     N = p.N
@@ -111,7 +112,7 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
         activity = np.array(activity_data)
 
         if success:
-            # activity
+            # mean and std of activity
             a_mean = [np.mean(activity[:, 1000:, :N[0]]),
                           np.mean(activity[:, 1000:, sum(N[:1]):sum(N[:2])]),
                           np.mean(activity[:, 1000:, sum(N[:2]):sum(N[:3])]),
@@ -124,7 +125,7 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
             a_mean_all.append(a_mean)
             a_std_all.append(a_std)
 
-            # only reliable cells
+            # use only reliable cells
             activity_cs = np.mean(activity[:, 1000:, :N[0]], axis=1)
             activity_cc = np.mean(activity[:, 1000:, sum(N[:1]):sum(N[:2])], axis=1)
             activity_pv = np.mean(activity[:, 1000:, sum(N[:2]):sum(N[:3])], axis=1)
@@ -154,7 +155,7 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
                 ds_mean_all.append(ds_mean)
                 ds_std_all.append(ds_std)
 
-
+    # calculate mean of orientation and direction selectivity
     if os_mean_all != []:
         a_mean_data = np.mean(np.array(a_mean_all), axis=0)
         a_std_data = np.std(np.array(a_mean_all), axis=0)

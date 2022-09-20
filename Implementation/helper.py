@@ -6,7 +6,8 @@ import math
 def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady,
                       input_cs, input_cc, input_pv, input_sst, N):
     """
-    Generates a moving bar as input
+    Generates a moving bar as input to CS, CC, PV, SST.
+
     """
 
     a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
@@ -68,12 +69,12 @@ def create_synapses(N_pre, N_post, c, same_population=False):
 
     return np.array([i, j])
 
-
-def cv(x):
-    return (np.std(x) / np.mean(x))
-
-
 def normal_distr_weights(weight, w_noise):
+    """
+    Generate weights with normally distributed weight noise.
+
+    """
+
     if weight > 0:
         weight = np.abs(np.random.normal(weight, w_noise))
     elif weight < 0:
@@ -106,6 +107,11 @@ def generate_connectivity(N, p, w_initial, w_noise):
 
 
 def calculate_selectivity(activity_popu):
+    """
+    Calculate mean and std of selectivity.
+
+    """
+
     os_mean_data = []  # orientation selectivity
     os_std_data = []
     ds_mean_data = []  # directions selectivity
