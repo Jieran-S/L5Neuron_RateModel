@@ -43,6 +43,7 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
     os_mean_all, os_std_all, ds_mean_all, ds_std_all = [], [], [], []
     a_mean_all, a_std_all = [], []
 
+    ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
         # weights
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
