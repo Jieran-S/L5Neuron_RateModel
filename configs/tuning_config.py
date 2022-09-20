@@ -2,7 +2,7 @@ import numpy as np
 
 ####### simulation parameters #######
 sim_number = 300
-jobs_number = 500
+jobs_number = 700
 name_sim ='os_ds_'
 update_function = 'version_normal'
 integrator = 'forward_euler'
@@ -26,8 +26,10 @@ prob = np.array([[0.16, 0, 0.18, 0.23],
                   [0.09, 0.06, 0.22, 0.26],
                   [0.43, 0.38, 0.5, 0.14],
                   [0.52, 0.13, 0.29, 0.1]])
+
 # number of CS, CC, PV and SST neurons
 N = np.array([100, 100, 25, 25])
+
 w_noise = 0.03 # synaptic weight noise
 
 ####### Activation function #######
@@ -35,8 +37,8 @@ nonlinearity_rule = 'supralinear'
 gamma = 1
 
 ####### Input #######
-input_pv = ['bar',0.125,0.25,0.5,1,2,4,8]
-input_sst = ['bar',0.125,0.25,0.5,1,2,4,8]
+input_cs = ['bar',0,0.125,0.25,0.5,1,2,4,8]
+input_cc = ['bar',0,0.125,0.25,0.5,1,2,4,8]
 input_pv = ['bar',0,0.125,0.25,0.5,1,2,4,8]
 input_sst = ['bar',0,0.125,0.25,0.5,1,2,4,8]
 degree = [0, 90, 180, 270]
