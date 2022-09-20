@@ -116,30 +116,42 @@ def calculate_selectivity(activity_popu):
     os_std_data = []
     ds_mean_data = []  # directions selectivity
     ds_std_data = []
+    ds_paper_mean_data = []  # directions selectivity calculated as in paper
+    ds_paper_std_data = []
 
     for population in range(4):
         preferred_orientation = np.argmax(activity_popu[population], axis=0)
 
-        os, ds = [], []
+        os, ds, ds_paper = [], [], []
         preferred_orientation_freq = [0, 0, 0, 0]
-        # print(activity_popu[population].shape)
+
         for neuron in range(activity_popu[population].shape[1]):
             s_max_index = preferred_orientation[neuron]
             preferred_orientation_freq[s_max_index] += 1
 
-            # preferred stimulus
-            s_max = activity_popu[population][s_max_index][neuron]
+            # activity of preferred stimulus
+            s_pref = activity_popu[population][s_max_index][neuron]
 
-            s_orth = (activity_popu[population][(s_max_index + 1) % 4][neuron] +
-                      activity_popu[population][(s_max_index + 3) % 4][neuron]) / 2  # orthogonal angle
-            s_oppo = activity_popu[population][(s_max_index + 2) % 4][neuron]  # opposite angle
+            # activity of preferred orientation in both directions
+            s_pref_orient = np.mean([activity_popu[population][s_max_index][neuron],
+                                    activity_popu[population][(s_max_index + 2) % 4][neuron]])
 
-            os.append((s_max - s_orth) / (s_max + s_orth))
-            ds.append((s_max - s_oppo) / (s_max + s_oppo))
+            # activity of orthogonal stimulus
+            s_orth = np.mean([activity_popu[population][(s_max_index + 1) % 4][neuron],
+                             activity_popu[population][(s_max_index + 3) % 4][neuron]])
+
+            # activity of opposite stimulus
+            s_oppo = activity_popu[population][(s_max_index + 2) % 4][neuron]
+
+            os.append((s_pref - s_orth) / (s_pref + s_orth))
+            ds.append((s_pref_orient - s_oppo) / (s_pref_orient + s_oppo))
+            ds_paper.append((s_pref - s_oppo) / (s_pref + s_oppo))
 
         os_mean_data.append(np.mean(os))
         os_std_data.append(np.std(os))
         ds_mean_data.append(np.mean(ds))
         ds_std_data.append(np.std(ds))
+        ds_paper_mean_data.append(np.mean(ds_paper))
+        ds_paper_std_data.append(np.std(ds_paper))
 
-    return (os_mean_data, os_std_data,ds_mean_data,ds_std_data)
+    return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,ds_paper_mean_data,ds_paper_std_data)
