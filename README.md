@@ -4,7 +4,7 @@ This model of the V1, layer 5 includes Cortico-Cortical (CC), Cortico-Subcortica
 
 ### Requirements
 
-Use ```conda env create -f network.yml``` to unpack the conda environment. Or download with ```conda install <module>``` the requirements manually.
+Use ```conda env create -f network.yml``` to unpack the conda environment. Or download with ```conda install <module>``` the requirements manually. After that, activate the environment with ```conda activate network```
 
 ### Run simulation
 
