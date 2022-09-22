@@ -3,14 +3,14 @@ import sys
 sys.path.append(abspath(''))
 import numpy as np
 from datetime import datetime
-import csv
-from joblib import Parallel, delayed
 import time
 import math
 import importlib
+import os
 
 import Implementation.network_model as nm
-from Implementation.helper import distributionInput, generate_connectivity, calculate_selectivity
+from Implementation.helper import distributionInput, generate_connectivity, \
+    calculate_selectivity, plot_activity
 if len(sys.argv) != 0:
     p = importlib.import_module(sys.argv[1])
 else:
@@ -43,6 +43,11 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
 
     ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
+        # Folder for figures
+        title_i = title + str(sim)
+        path = 'data/figures/' + title_i
+        os.mkdir(path)
+
         # weights
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
 
@@ -58,7 +63,7 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
 
         ################## iterate through different inputs ##################
         for g in radians:
-
+            print('#######################')
             # build network here
             Sn = nm.SimpleNetwork(W_rec,
                                   W_project=W_project_initial,
@@ -102,34 +107,40 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
             check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
             if check_eq > 0:
                 not_eq_counter += 1
-                break
+                print('Not eq')
+            else:
+                print('Eq')
 
             if g == radians[-1]:
                 success = 1
             activity_data.append(activity)
 
+        # plot activity and split activity for each population
         activity = np.array(activity_data)
+        print('activity shape', activity.shape)
+        plot_activity(activity, N, title_i)
+
 
         if success:
             # mean and std of activity
-            a_mean = [np.mean(activity[:, -1500:, :N[0]]),
-                          np.mean(activity[:, -1500:, sum(N[:1]):sum(N[:2])]),
-                          np.mean(activity[:, -1500:, sum(N[:2]):sum(N[:3])]),
-                          np.mean(activity[:, -1500:, sum(N[:3]):sum(N)])]
-            a_std = [np.std(activity[:, -1500:, :N[0]]),
-                         np.std(activity[:, -1500:, sum(N[:1]):sum(N[:2])]),
-                         np.std(activity[:, -1500:, sum(N[:2]):sum(N[:3])]),
-                         np.std(activity[:, -1500:, sum(N[:3]):sum(N)])]
+            a_mean = [np.mean(activity[:, -1000:, :N[0]]),
+                          np.mean(activity[:, -1000:, sum(N[:1]):sum(N[:2])]),
+                          np.mean(activity[:, -1000:, sum(N[:2]):sum(N[:3])]),
+                          np.mean(activity[:, -1000:, sum(N[:3]):sum(N)])]
+            a_std = [np.std(activity[:, -1000:, :N[0]]),
+                         np.std(activity[:, -1000:, sum(N[:1]):sum(N[:2])]),
+                         np.std(activity[:, -1000:, sum(N[:2]):sum(N[:3])]),
+                         np.std(activity[:, -1000:, sum(N[:3]):sum(N)])]
 
             a_mean_all.append(a_mean)
             a_std_all.append(a_std)
 
             # use only reliable cells
-            activity_cs = np.mean(activity[:, -1500:, :N[0]], axis=1)
-            activity_cc = np.mean(activity[:, -1500:, sum(N[:1]):sum(N[:2])], axis=1)
-            activity_pv = np.mean(activity[:, -1500:, sum(N[:2]):sum(N[:3])], axis=1)
-            activity_sst = np.mean(activity[:, -1500:, sum(N[:3]):sum(N)], axis=1)
 
+            activity_cs = np.mean(activity[:, -1000:, :N[0]], axis=1)
+            activity_cc = np.mean(activity[:, -1000:, sum(N[:1]):sum(N[:2])], axis=1)
+            activity_pv = np.mean(activity[:, -1000:, sum(N[:2]):sum(N[:3])], axis=1)
+            activity_sst = np.mean(activity[:, -1000:, sum(N[:3]):sum(N)], axis=1)
             activity_not_reliable = [activity_cs, activity_cc, activity_pv, activity_sst]
 
             activity_popu = []
@@ -196,53 +207,22 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
         for d in selectivity_data_i:
             row.append(d)
     row = row + [os_rel,ds_rel,ds_paper_rel,time.time() - start_time]
-
-    # write into csv file
-    with open(title, 'a') as f:
-        writer = csv.writer(f)
-        writer.writerow(row)
+    return row
 
 ############### prepare csv file ###############
+for input_cs in p.input_cs:
+    for input_cc in p.input_cc:
+        for input_pv in p.input_pv:
+            for input_sst in p.input_sst:
+                for spatialF in p.spatialF:
+                    for temporalF in p.temporalF:
+                        for spatialPhase in p.spatialPhase:
+                            for amplitude in p.amplitude:
 
-now = datetime.now() # current date and time
-time_id = now.strftime("%m:%d:%Y_%H:%M:%S")
-title = 'data/' + p.name_sim + time_id + '.csv'
+                                now = datetime.now() # current date and time
+                                title = now.strftime("%m:%d:%Y_%H:%M:%S")
+                                start_time = time.time()
 
-row = ['input_cs', 'input_cc','input_pv', 'input_sst',
-        'spatialF','temporalF','spatialPhase','amplitude',
-        'nan_counter','not_eq_counter','activity_off',
-        'os_mean1','os_mean2','os_mean3','os_mean4',
-        'os_std1','os_std2','os_std3','os_std4',
-        'os_std_sim1','os_std_sim2','os_std_sim3','os_std_sim4',
-        'ds_mean1','ds_mean2','ds_mean3','ds_mean4',
-        'ds_std1','ds_std2','ds_std3','ds_std4',
-        'ds_std_sim1','ds_std_sim2','ds_std_sim3','ds_std_sim4',
-        'ds_paper_mean1','ds_paper_mean2','ds_paper_mean3','ds_paper_mean4',
-        'ds_paper_std1','ds_paper_std2','ds_paper_std3','ds_paper_std4',
-        'ds_paper_std_sim1','ds_paper_std_sim2','ds_paper_std_sim3','ds_paper_std_sim4',
-        'a_mean1','a_mean2','a_mean3','a_mean4',
-        'a_std1','a_std2','a_std3','a_std4',
-        'a_std_sim1','a_std_sim2','a_std_sim3','a_std_sim4',
-        'os rel','ds rel','ds_paper_rel',
-        'time']
-
-f = open(title, 'w')
-writer = csv.writer(f)
-writer.writerow(row)
-f.close()
-
-############### start simulation ###############
-
-start_time = time.time()
-
-# use joblib to parallelize simulations with different parameter values
-Parallel(n_jobs=p.jobs_number)(delayed(run_simulation)(input_cs, input_cc, input_pv, input_sst,
-                                                       spatialF,temporalF,spatialPhase,amplitude,start_time,title)
-                    for input_cs in p.input_cs
-                    for input_cc in p.input_cc
-                    for input_pv in p.input_pv
-                    for input_sst in p.input_sst
-                    for spatialF in p.spatialF
-                    for temporalF in p.temporalF
-                    for spatialPhase in p.spatialPhase
-                    for amplitude in p.amplitude)
+                                run_simulation(input_cs, input_cc, input_pv, input_sst,
+                                                spatialF,temporalF,spatialPhase,amplitude,
+                                                start_time,title)

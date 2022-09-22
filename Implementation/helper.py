@@ -1,6 +1,13 @@
 import numpy as np
 np.random.seed(42)
 import math
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+# remove top and right axis from plots
+mpl.rcParams["axes.spines.right"] = False
+mpl.rcParams["axes.spines.top"] = False
+
 
 
 def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady,
@@ -155,3 +162,42 @@ def calculate_selectivity(activity_popu):
         ds_paper_std_data.append(np.std(ds_paper))
 
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,ds_paper_mean_data,ds_paper_std_data)
+
+def plot_activity(activity, N, title):
+    if len(activity) == 0:
+        return(0)
+    activity_cs = activity[:, :, :N[0]]
+    activity_cc = activity[:, :, sum(N[:1]):sum(N[:2])]
+    activity_pv = activity[:, :, sum(N[:2]):sum(N[:3])]
+    activity_sst = activity[:, :, sum(N[:3]):sum(N)]
+    print(activity_sst.shape)
+
+    for g in range(activity_cs.shape[0]): # degrees
+        fig,axs = plt.subplots()
+        for i in range(activity_cs.shape[2]):
+            plt.plot(range(activity_cs.shape[1]),activity_cs[g,:,i],c='grey',alpha=0.5)
+        plt.title('CS')
+        title_save = 'data/figures/'+title+ '/' + str(g)+ '_CS.png'
+        fig.savefig(title_save)
+
+        fig, axs = plt.subplots()
+        for i in range(activity_cc.shape[2]):
+            plt.plot(range(activity_cc.shape[1]), activity_cc[g,:,i], c='grey', alpha=0.5)
+        plt.title('CC')
+        title_save = 'data/figures/' + title + '/' + str(g) + '_CC.png'
+        fig.savefig(title_save)
+
+        fig, axs = plt.subplots()
+        for i in range(activity_pv.shape[2]):
+            plt.plot(range(activity_pv.shape[1]), activity_pv[g,:,i], c='grey', alpha=0.5)
+        plt.title('PV')
+        title_save = 'data/figures/' + title + '/' + str(g) + '_PV.png'
+        fig.savefig(title_save)
+
+        fig, axs = plt.subplots()
+        for i in range(activity_sst.shape[2]):
+            plt.plot(range(activity_sst.shape[1]), activity_sst[g,:,i], c='grey', alpha=0.5)
+        plt.title('SST')
+        title_save = 'data/figures/' + title + '/' + str(g) + '_SST.png'
+        fig.savefig(title_save)
+

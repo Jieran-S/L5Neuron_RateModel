@@ -1,8 +1,8 @@
 import numpy as np
 
 ####### simulation parameters #######
-sim_number = 300
-jobs_number = 500
+sim_number = 5
+jobs_number = 4
 name_sim ='os_ds_'
 update_function = 'version_normal'
 integrator = 'forward_euler'
@@ -37,13 +37,14 @@ nonlinearity_rule = 'supralinear'
 gamma = 1
 
 ####### Input #######
-input_cs = ['bar',0.125,0.25,0.5,1,2,4]
-input_cc = ['bar',0.125,0.25,0.5,1,2,4]
-input_pv = ['bar',0.125,0.25,0.5,1,2,4]
-input_sst = ['bar',0.125,0.25,0.5,1,2,4]
+# [0.0625,0.125,0.25,0.5,1,2,4,8,16]
+input_cs = [2]  # bar means moving bar input
+input_cc = ['bar']
+input_pv = [0.9]
+input_sst = [0.9]
 degree = [0, 90, 180, 270]
-spatialF = [0.5,1,2]
-temporalF = [0.5,1,2]
-spatialPhase = [0.5,1,2]
-amplitude = [0.5,1,2]
+spatialF = [1]
+temporalF = [1]
+spatialPhase = [1]
+amplitude = [1]
 steady_input = 0
