@@ -2,13 +2,13 @@ import numpy as np
 
 ####### simulation parameters #######
 sim_number = 300
-jobs_number = 500
+jobs_number = 100
 name_sim ='os_ds_'
 update_function = 'version_normal'
 integrator = 'forward_euler'
 delta_t = 0.01
 tau = 0.1
-Ttau = 2500
+Ttau = 500
 
 ####### Network parameters #######
 learning_rule = 'none'
@@ -37,13 +37,13 @@ nonlinearity_rule = 'supralinear'
 gamma = 1
 
 ####### Input #######
+degree = [0, 90, 180, 270]
 input_cs = ['bar',0.125,0.25,0.5,1,2,4]
 input_cc = ['bar',0.125,0.25,0.5,1,2,4]
 input_pv = ['bar',0.125,0.25,0.5,1,2,4]
 input_sst = ['bar',0.125,0.25,0.5,1,2,4]
-degree = [0, 90, 180, 270]
-spatialF = [0.5,1,2]
-temporalF = [0.5,1,2]
-spatialPhase = [0.5,1,2]
-amplitude = [0.5,1,2]
+spatialF = [1]
+temporalF = [1]
+spatialPhase = [1]
+amplitude = [1]
 steady_input = 0

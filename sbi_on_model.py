@@ -19,8 +19,7 @@ else:
 np.random.seed(42)
 
 def run_simulation(input_cs, input_cc, input_pv, input_sst,
-                   spatialF,temporalF,spatialPhase,amplitude,
-                   start_time,title):
+                   spatialF,temporalF,spatialPhase,amplitude):
 
     # network parameters
     N = p.N
@@ -36,17 +35,14 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
 
     # Evaluation metrics
     nan_counter, not_eq_counter = 0, 0
-    activity_off = [0,0,0,0]
     os_rel, ds_rel, ds_paper_rel = None, None, None
-    os_mean_all, os_std_all, ds_mean_all, ds_std_all, ds_paper_mean_all, ds_paper_std_all, a_mean_all, a_std_all = \
-        [], [], [], [], [], [], [], []
+    os_mean_all, ds_mean_all, ds_paper_mean_all, n_rel_all = [], [], [], []
 
     ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
-        # Folder for figures
-        title_i = title + str(sim)
-        path = 'data/figures/' + title_i
-        os.mkdir(path)
+        title_folder = 'data/figures/sbi'+str(sim)
+        if not(os.path.exists(title_folder)):
+            os.mkdir(title_folder)
 
         # weights
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
@@ -63,7 +59,6 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
 
         ################## iterate through different inputs ##################
         for g in radians:
-            print('#######################')
             # build network here
             Sn = nm.SimpleNetwork(W_rec,
                                   W_project=W_project_initial,
@@ -107,107 +102,64 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
             check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
             if check_eq > 0:
                 not_eq_counter += 1
-                print('Not eq')
+                print('not eq')
+                #break
             else:
-                print('Eq')
+                print('eq')
 
             if g == radians[-1]:
                 success = 1
             activity_data.append(activity)
-
-        # plot activity and split activity for each population
         activity = np.array(activity_data)
-        print('activity shape', activity.shape)
-        plot_activity(activity, N, title_i)
-
+        plot_activity(activity, N, title_folder)
 
         if success:
-            # mean and std of activity
-            a_mean = [np.mean(activity[:, -1000:, :N[0]]),
-                          np.mean(activity[:, -1000:, sum(N[:1]):sum(N[:2])]),
-                          np.mean(activity[:, -1000:, sum(N[:2]):sum(N[:3])]),
-                          np.mean(activity[:, -1000:, sum(N[:3]):sum(N)])]
-            a_std = [np.std(activity[:, -1000:, :N[0]]),
-                         np.std(activity[:, -1000:, sum(N[:1]):sum(N[:2])]),
-                         np.std(activity[:, -1000:, sum(N[:2]):sum(N[:3])]),
-                         np.std(activity[:, -1000:, sum(N[:3]):sum(N)])]
+            activity_cs = np.mean(activity[:, -1500:, :N[0]], axis=1)
+            activity_cc = np.mean(activity[:, -1500:, sum(N[:1]):sum(N[:2])], axis=1)
+            activity_all = [activity_cs, activity_cc]
 
-            a_mean_all.append(a_mean)
-            a_std_all.append(a_std)
-
-            # use only reliable cells
-
-            activity_cs = np.mean(activity[:, -1000:, :N[0]], axis=1)
-            activity_cc = np.mean(activity[:, -1000:, sum(N[:1]):sum(N[:2])], axis=1)
-            activity_pv = np.mean(activity[:, -1000:, sum(N[:2]):sum(N[:3])], axis=1)
-            activity_sst = np.mean(activity[:, -1000:, sum(N[:3]):sum(N)], axis=1)
-            activity_not_reliable = [activity_cs, activity_cc, activity_pv, activity_sst]
-
-            activity_popu = []
-            for popu in range(len(N)):
-                reliable_cells = []
+            # calculate proportion of reliable CS and CC cells (at least one active)
+            n_rel = []
+            for popu in range(2):
                 for neuron in range(N[popu]):
-                    not_reliable = 0
+                    n_on = 0
                     for stim in range(4):
-                        if activity_not_reliable[popu][stim, neuron] < 0.0001:
-                            not_reliable += 1
-                    if not_reliable != 4:
-                        reliable_cells.append(activity_not_reliable[popu][:, neuron])
-                reliable_cells = np.array(reliable_cells).T
-                if len(reliable_cells)>0:
-                    activity_popu.append(reliable_cells)
-                else:
-                    activity_off[popu] += 1
-            if len(activity_popu) == 4:
-                os_mean, os_std, ds_mean, ds_std, ds_paper_mean, ds_paper_std = calculate_selectivity(activity_popu)
-                os_mean_all.append(os_mean)
-                os_std_all.append(os_std)
-                ds_mean_all.append(ds_mean)
-                ds_std_all.append(ds_std)
-                ds_paper_mean_all.append(ds_paper_mean)
-                ds_paper_std_all.append(ds_paper_std)
+                        if activity_all[popu][stim, neuron] > 0.0001:
+                            n_on += 1
+                n_rel.append(n_on/N[popu])
+            n_rel_all.append(n_rel)
+
+            os_mean, ds_mean, ds_paper_mean= calculate_selectivity_sbi(activity_all)
+            os_mean_all.append(os_mean)
+            ds_mean_all.append(ds_mean)
+            ds_paper_mean_all.append(ds_paper_mean)
 
     # calculate mean of orientation and direction selectivity
     if os_mean_all != []:
-        a_mean_data = np.mean(np.array(a_mean_all), axis=0)
-        a_std_data = np.std(np.array(a_mean_all), axis=0)
-        a_std_sim_data = np.mean(np.array(a_std_all), axis=0)
-
+        n_rel_data = np.mean(np.array(n_rel_all),axis=0)
         os_mean_data = np.mean(np.array(os_mean_all),axis=0)
-        os_std_data = np.std(np.array(os_mean_all), axis=0)
-        os_std_sim_data = np.mean(np.array(os_std_all), axis=0)
-
-        ds_mean_data = np.mean(np.array(ds_mean_all), axis=0)
-        ds_std_data = np.std(np.array(ds_mean_all), axis=0)
-        ds_std_sim_data = np.mean(np.array(ds_std_all), axis=0)
-
+        ds_mean_data = np.mean(np.array(ds_mean_all),axis=0)
         ds_paper_mean_data = np.mean(np.array(ds_paper_mean_all), axis=0)
-        ds_paper_std_data = np.std(np.array(ds_paper_mean_all), axis=0)
-        ds_paper_std_sim_data = np.mean(np.array(ds_paper_std_all), axis=0)
 
-        if os_mean_data[1] > 0.00001 and ds_mean_data[1] > 0.00001:
-            os_rel = 1 - os_mean_data[0] / os_mean_data[1]
-            ds_rel = 1 - ds_mean_data[0] / ds_mean_data[1]
-            ds_paper_rel = 1 - ds_paper_mean_data[0] / ds_paper_mean_data[1]
+        if (os_mean_data[0] - os_mean_data[1]) > 0.00001:
+            os_rel = (os_mean_data[0] - os_mean_data[1])/(os_mean_data[0] + os_mean_data[1])
+        if (ds_mean_data[0] - ds_mean_data[1]) > 0.00001:
+            ds_rel = (ds_mean_data[0] - ds_mean_data[1]) / (ds_mean_data[0] + ds_mean_data[1])
+        if (ds_paper_mean_data[0] - ds_paper_mean_data[1]) > 0.00001:
+            ds_paper_rel = \
+                (ds_paper_mean_data[0] - ds_paper_mean_data[1]) / (ds_paper_mean_data[0] + ds_paper_mean_data[1])
     else:
-        os_mean_data, os_std_data, ds_mean_data, ds_std_data, ds_paper_mean_data, ds_paper_std_data = \
-            [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
-        os_std_sim_data, ds_std_sim_data, ds_paper_std_sim_data = [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
-        a_mean_data, a_std_data, a_std_sim_data = [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
+        n_rel_data, os_mean_data, ds_mean_data, ds_paper_mean_data = \
+            [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
 
     # collect results here
-    row = [input_cc, input_cs,input_pv, input_sst,
-           spatialF,temporalF,spatialPhase,amplitude,
-           nan_counter,not_eq_counter,activity_off]
-    selectivity_data = [os_mean_data, os_std_data, os_std_sim_data,
-                        ds_mean_data, ds_std_data, ds_std_sim_data,
-                        ds_paper_mean_data, ds_paper_std_data, ds_paper_std_sim_data,
-                        a_mean_data, a_std_data, a_std_sim_data]
+    row = []
+    selectivity_data = [os_mean_data, ds_mean_data, ds_paper_mean_data, n_rel_data]
     for selectivity_data_i in selectivity_data:
         for d in selectivity_data_i:
             row.append(d)
-    row = row + [os_rel,ds_rel,ds_paper_rel,time.time() - start_time]
-    return row
+    row = row + [os_rel,ds_rel,ds_paper_rel, nan_counter/p.sim_number, not_eq_counter/p.sim_number]
+    return np.array(row)
 
 ############### prepare csv file ###############
 for input_cs in p.input_cs:
@@ -219,10 +171,5 @@ for input_cs in p.input_cs:
                         for spatialPhase in p.spatialPhase:
                             for amplitude in p.amplitude:
 
-                                now = datetime.now() # current date and time
-                                title = now.strftime("%m:%d:%Y_%H:%M:%S")
-                                start_time = time.time()
-
-                                run_simulation(input_cs, input_cc, input_pv, input_sst,
-                                                spatialF,temporalF,spatialPhase,amplitude,
-                                                start_time,title)
+                                print(run_simulation(input_cs, input_cc, input_pv, input_sst,
+                                                spatialF,temporalF,spatialPhase,amplitude))

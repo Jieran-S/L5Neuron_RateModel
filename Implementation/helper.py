@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt
 mpl.rcParams["axes.spines.right"] = False
 mpl.rcParams["axes.spines.top"] = False
 
-
-
 def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady,
                       input_cs, input_cc, input_pv, input_sst, N):
     """
@@ -112,6 +110,49 @@ def generate_connectivity(N, p, w_initial, w_noise):
                                                                                              w_noise)
     return (W_rec.T)
 
+def calculate_selectivity_sbi(activity_popu):
+    """
+    Calculate mean and std of selectivity.
+
+    """
+
+    os_mean_data = []  # orientation selectivity
+    ds_mean_data = []  # directions selectivity
+    ds_paper_mean_data = []  # directions selectivity calculated as in paper
+
+    for population in range(len(activity_popu)):
+        preferred_orientation = np.argmax(activity_popu[population], axis=0)
+
+        os, ds, ds_paper = [], [], []
+        preferred_orientation_freq = [0, 0, 0, 0]
+
+        for neuron in range(activity_popu[population].shape[1]):
+            s_max_index = preferred_orientation[neuron]
+            preferred_orientation_freq[s_max_index] += 1
+
+            # activity of preferred stimulus
+            s_pref = activity_popu[population][s_max_index][neuron]
+
+            # activity of preferred orientation in both directions
+            s_pref_orient = np.mean([activity_popu[population][s_max_index][neuron],
+                                    activity_popu[population][(s_max_index + 2) % 4][neuron]])
+
+            # activity of orthogonal stimulus
+            s_orth = np.mean([activity_popu[population][(s_max_index + 1) % 4][neuron],
+                             activity_popu[population][(s_max_index + 3) % 4][neuron]])
+
+            # activity of opposite stimulus
+            s_oppo = activity_popu[population][(s_max_index + 2) % 4][neuron]
+
+            os.append((s_pref - s_orth) / (s_pref + s_orth))
+            ds.append((s_pref_orient - s_oppo) / (s_pref_orient + s_oppo))
+            ds_paper.append((s_pref - s_oppo) / (s_pref + s_oppo))
+
+        os_mean_data.append(np.mean(os))
+        ds_mean_data.append(np.mean(ds))
+        ds_paper_mean_data.append(np.mean(ds_paper))
+
+    return (os_mean_data,ds_mean_data,ds_paper_mean_data)
 
 def calculate_selectivity(activity_popu):
     """
@@ -177,27 +218,27 @@ def plot_activity(activity, N, title):
         for i in range(activity_cs.shape[2]):
             plt.plot(range(activity_cs.shape[1]),activity_cs[g,:,i],c='grey',alpha=0.5)
         plt.title('CS')
-        title_save = 'data/figures/'+title+ '/' + str(g)+ '_CS.png'
+        title_save = title+ '/' + str(g)+ '_CS.png'
         fig.savefig(title_save)
 
         fig, axs = plt.subplots()
         for i in range(activity_cc.shape[2]):
             plt.plot(range(activity_cc.shape[1]), activity_cc[g,:,i], c='grey', alpha=0.5)
         plt.title('CC')
-        title_save = 'data/figures/' + title + '/' + str(g) + '_CC.png'
+        title_save = title + '/' + str(g) + '_CC.png'
         fig.savefig(title_save)
 
         fig, axs = plt.subplots()
         for i in range(activity_pv.shape[2]):
             plt.plot(range(activity_pv.shape[1]), activity_pv[g,:,i], c='grey', alpha=0.5)
         plt.title('PV')
-        title_save = 'data/figures/' + title + '/' + str(g) + '_PV.png'
+        title_save = title + '/' + str(g) + '_PV.png'
         fig.savefig(title_save)
 
         fig, axs = plt.subplots()
         for i in range(activity_sst.shape[2]):
             plt.plot(range(activity_sst.shape[1]), activity_sst[g,:,i], c='grey', alpha=0.5)
         plt.title('SST')
-        title_save = 'data/figures/' + title + '/' + str(g) + '_SST.png'
+        title_save = title + '/' + str(g) + '_SST.png'
         fig.savefig(title_save)
 

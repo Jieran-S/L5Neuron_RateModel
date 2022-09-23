@@ -95,8 +95,8 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
                 break
 
             # check equilibrium
-            a1 = activity[-3000:-1500, :]
-            a2 = activity[-1500:, :]
+            a1 = activity[-2000:-1000, :]
+            a2 = activity[-1000:, :]
             mean1 = np.mean(a1, axis=0)
             mean2 = np.mean(a2, axis=0)
             check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
@@ -107,7 +107,6 @@ def run_simulation(input_cs, input_cc, input_pv, input_sst,
             if g == radians[-1]:
                 success = 1
             activity_data.append(activity)
-
         activity = np.array(activity_data)
 
         if success:
