@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 mpl.rcParams["axes.spines.right"] = False
 mpl.rcParams["axes.spines.top"] = False
 
-def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady,
+def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input,
                       input_cs, input_cc, input_pv, input_sst, N):
     """
     Generates a moving bar as input to CS, CC, PV, SST.
@@ -19,16 +19,11 @@ def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude,
     b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
 
     inputs = []
-    if not (steady):
-        for t in range(T):
-            inputs.append(np.abs(amplitude * np.cos(
-                spatialF * a_data * np.cos(orientation) + spatialF * b_data * np.sin(
-                    orientation) - spatialPhase) * np.cos(
-                temporalF * t)))
-    else:
-        for t in range(T):
-            inputs.append(np.abs(
-                amplitude * np.cos(spatialF * a_data * np.cos(orientation) + spatialF * b_data * np.sin(orientation))))
+    for t in range(T):
+        inputs.append(np.abs(amplitude * np.cos(
+            spatialF * a_data * np.cos(orientation) + spatialF * b_data * np.sin(
+                orientation) - spatialPhase) * np.cos(
+            temporalF * t)))
 
     inputs = np.array(inputs)
 
@@ -41,6 +36,39 @@ def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude,
         inputs[:, sum(N[:2]):sum(N[:3])] = input_pv
     if input_sst != 'bar':
         inputs[:, sum(N[:3]):] = input_sst
+
+    return (inputs)
+
+
+def distributionInput_sbi(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
+    """
+    Generates a moving bar as input to CS, CC, PV, SST.
+
+    """
+
+    a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
+    b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
+
+    i = 0
+    inputs_p_all = []
+    N_indices = [[0, N[0]], [sum(N[:1]), sum(N[:2])], [sum(N[:2]), sum(N[:3])], [sum(N[:3]), sum(N)]]
+    for popu in N_indices:
+        inputs_p = []
+
+        if steady_input[i] < 0.5:
+            inputs_p = np.ones((T, N[i])) * amplitude[i]
+        else:
+            for t in range(T):
+                inputs_p.append(np.abs(amplitude[i] * np.cos(
+                    spatialF * a_data[popu[0]:popu[1]] * np.cos(orientation) +
+                    spatialF * b_data[popu[0]:popu[1]] * np.sin(orientation) - spatialPhase)
+                                       * np.cos(temporalF * t)))
+            inputs_p = np.array(inputs_p)
+
+        i += 1
+        inputs_p_all.append(inputs_p)
+
+    inputs = np.concatenate((inputs_p_all), axis=1)
 
     return (inputs)
 
@@ -211,7 +239,6 @@ def plot_activity(activity, N, title):
     activity_cc = activity[:, :, sum(N[:1]):sum(N[:2])]
     activity_pv = activity[:, :, sum(N[:2]):sum(N[:3])]
     activity_sst = activity[:, :, sum(N[:3]):sum(N)]
-    print(activity_sst.shape)
 
     for g in range(activity_cs.shape[0]): # degrees
         fig,axs = plt.subplots()
