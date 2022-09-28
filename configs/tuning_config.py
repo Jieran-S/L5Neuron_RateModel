@@ -1,7 +1,7 @@
 import numpy as np
 
 ####### simulation parameters #######
-sim_number = 300
+sim_number = 100
 jobs_number = 100
 name_sim ='os_ds_'
 update_function = 'version_normal'

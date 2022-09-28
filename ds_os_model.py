@@ -41,8 +41,8 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     # Evaluation metrics
     nan_counter, not_eq_counter = 0, 0
     activity_off = [0,0,0,0]
-    os_rel, ds_rel, ds_paper_rel = None, None, None
-    os_mean_all, os_std_all, ds_mean_all, ds_std_all, ds_paper_mean_all, ds_paper_std_all, a_mean_all, a_std_all = \
+    os_rel, ds_rel, os_paper_rel = None, None, None
+    os_mean_all, os_std_all, ds_mean_all, ds_std_all, os_paper_mean_all, os_paper_std_all, a_mean_all, a_std_all = \
         [], [], [], [], [], [], [], []
 
     ################## iterate through different initialisations ##################
@@ -138,13 +138,13 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
                 else:
                     activity_off[popu] += 1
             if len(activity_popu) == 4:
-                os_mean, os_std, ds_mean, ds_std, ds_paper_mean, ds_paper_std = calculate_selectivity(activity_popu)
+                os_mean, os_std, ds_mean, ds_std, os_paper_mean, os_paper_std = calculate_selectivity(activity_popu)
                 os_mean_all.append(os_mean)
                 os_std_all.append(os_std)
                 ds_mean_all.append(ds_mean)
                 ds_std_all.append(ds_std)
-                ds_paper_mean_all.append(ds_paper_mean)
-                ds_paper_std_all.append(ds_paper_std)
+                os_paper_mean_all.append(os_paper_mean)
+                os_paper_std_all.append(os_paper_std)
 
     # calculate mean of orientation and direction selectivity
     if os_mean_all != []:
@@ -160,18 +160,18 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         ds_std_data = np.std(np.array(ds_mean_all), axis=0)
         ds_std_sim_data = np.mean(np.array(ds_std_all), axis=0)
 
-        ds_paper_mean_data = np.mean(np.array(ds_paper_mean_all), axis=0)
-        ds_paper_std_data = np.std(np.array(ds_paper_mean_all), axis=0)
-        ds_paper_std_sim_data = np.mean(np.array(ds_paper_std_all), axis=0)
+        os_paper_mean_data = np.mean(np.array(os_paper_mean_all), axis=0)
+        os_paper_std_data = np.std(np.array(os_paper_mean_all), axis=0)
+        os_paper_std_sim_data = np.mean(np.array(os_paper_std_all), axis=0)
 
         if os_mean_data[1] > 0.00001 and ds_mean_data[1] > 0.00001:
             os_rel = 1 - os_mean_data[0] / os_mean_data[1]
             ds_rel = 1 - ds_mean_data[0] / ds_mean_data[1]
-            ds_paper_rel = 1 - ds_paper_mean_data[0] / ds_paper_mean_data[1]
+            os_paper_rel = 1 - os_paper_mean_data[0] / os_paper_mean_data[1]
     else:
-        os_mean_data, os_std_data, ds_mean_data, ds_std_data, ds_paper_mean_data, ds_paper_std_data = \
+        os_mean_data, os_std_data, ds_mean_data, ds_std_data, os_paper_mean_data, os_paper_std_data = \
             [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
-        os_std_sim_data, ds_std_sim_data, ds_paper_std_sim_data = [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
+        os_std_sim_data, ds_std_sim_data, os_paper_std_sim_data = [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
         a_mean_data, a_std_data, a_std_sim_data = [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
 
     # collect results here
@@ -180,12 +180,12 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         spatialF, temporalF, spatialPhase,nan_counter,not_eq_counter,activity_off]
     selectivity_data = [os_mean_data, os_std_data, os_std_sim_data,
                         ds_mean_data, ds_std_data, ds_std_sim_data,
-                        ds_paper_mean_data, ds_paper_std_data, ds_paper_std_sim_data,
+                        os_paper_mean_data, os_paper_std_data, os_paper_std_sim_data,
                         a_mean_data, a_std_data, a_std_sim_data]
     for selectivity_data_i in selectivity_data:
         for d in selectivity_data_i:
             row.append(d)
-    row = row + [os_rel,ds_rel,ds_paper_rel,time.time() - start_time]
+    row = row + [os_rel,ds_rel,os_paper_rel,time.time() - start_time]
 
     # write into csv file
     with open(title, 'a') as f:
@@ -208,13 +208,13 @@ row = ['cs_steady', 'cc_steady', 'pv_steady', 'sst_steady',
         'ds_mean1','ds_mean2','ds_mean3','ds_mean4',
         'ds_std1','ds_std2','ds_std3','ds_std4',
         'ds_std_sim1','ds_std_sim2','ds_std_sim3','ds_std_sim4',
-        'ds_paper_mean1','ds_paper_mean2','ds_paper_mean3','ds_paper_mean4',
-        'ds_paper_std1','ds_paper_std2','ds_paper_std3','ds_paper_std4',
-        'ds_paper_std_sim1','ds_paper_std_sim2','ds_paper_std_sim3','ds_paper_std_sim4',
+        'os_paper_mean1','os_paper_mean2','os_paper_mean3','os_paper_mean4',
+        'os_paper_std1','os_paper_std2','os_paper_std3','os_paper_std4',
+        'os_paper_std_sim1','os_paper_std_sim2','os_paper_std_sim3','os_paper_std_sim4',
         'a_mean1','a_mean2','a_mean3','a_mean4',
         'a_std1','a_std2','a_std3','a_std4',
         'a_std_sim1','a_std_sim2','a_std_sim3','a_std_sim4',
-        'os rel','ds rel','ds_paper_rel',
+        'os rel','ds rel','os_paper_rel',
         'time']
 
 f = open(title, 'w')

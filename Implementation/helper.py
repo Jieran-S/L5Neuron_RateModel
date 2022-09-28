@@ -146,12 +146,12 @@ def calculate_selectivity_sbi(activity_popu):
 
     os_mean_data = []  # orientation selectivity
     ds_mean_data = []  # directions selectivity
-    ds_paper_mean_data = []  # directions selectivity calculated as in paper
+    os_paper_mean_data = []  # directions selectivity calculated as in paper
 
     for population in range(len(activity_popu)):
         preferred_orientation = np.argmax(activity_popu[population], axis=0)
 
-        os, ds, ds_paper = [], [], []
+        os, ds, os_paper = [], [], []
         preferred_orientation_freq = [0, 0, 0, 0]
 
         for neuron in range(activity_popu[population].shape[1]):
@@ -174,13 +174,13 @@ def calculate_selectivity_sbi(activity_popu):
 
             os.append((s_pref - s_orth) / (s_pref + s_orth))
             ds.append((s_pref_orient - s_oppo) / (s_pref_orient + s_oppo))
-            ds_paper.append((s_pref - s_oppo) / (s_pref + s_oppo))
+            os_paper.append((s_pref - s_oppo) / (s_pref + s_oppo))
 
         os_mean_data.append(np.mean(os))
         ds_mean_data.append(np.mean(ds))
-        ds_paper_mean_data.append(np.mean(ds_paper))
+        os_paper_mean_data.append(np.mean(os_paper))
 
-    return (os_mean_data,ds_mean_data,ds_paper_mean_data)
+    return (os_mean_data,ds_mean_data,os_paper_mean_data)
 
 def calculate_selectivity(activity_popu):
     """
@@ -192,13 +192,13 @@ def calculate_selectivity(activity_popu):
     os_std_data = []
     ds_mean_data = []  # directions selectivity
     ds_std_data = []
-    ds_paper_mean_data = []  # directions selectivity calculated as in paper
-    ds_paper_std_data = []
+    os_paper_mean_data = []  # directions selectivity calculated as in paper
+    os_paper_std_data = []
 
     for population in range(4):
         preferred_orientation = np.argmax(activity_popu[population], axis=0)
 
-        os, ds, ds_paper = [], [], []
+        os, ds, os_paper = [], [], []
         preferred_orientation_freq = [0, 0, 0, 0]
 
         for neuron in range(activity_popu[population].shape[1]):
@@ -219,18 +219,18 @@ def calculate_selectivity(activity_popu):
             # activity of opposite stimulus
             s_oppo = activity_popu[population][(s_max_index + 2) % 4][neuron]
 
-            os.append((s_pref - s_orth) / (s_pref + s_orth))
-            ds.append((s_pref_orient - s_oppo) / (s_pref_orient + s_oppo))
-            ds_paper.append((s_pref - s_oppo) / (s_pref + s_oppo))
+            os.append((s_pref_orient - s_orth) / (s_pref_orient + s_orth))
+            ds.append((s_pref - s_oppo) / (s_pref + s_oppo))
+            os_paper.append((s_pref - s_orth) / (s_pref + s_orth))
 
         os_mean_data.append(np.mean(os))
         os_std_data.append(np.std(os))
         ds_mean_data.append(np.mean(ds))
         ds_std_data.append(np.std(ds))
-        ds_paper_mean_data.append(np.mean(ds_paper))
-        ds_paper_std_data.append(np.std(ds_paper))
+        os_paper_mean_data.append(np.mean(os_paper))
+        os_paper_std_data.append(np.std(os_paper))
 
-    return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,ds_paper_mean_data,ds_paper_std_data)
+    return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,os_paper_mean_data,os_paper_std_data)
 
 def plot_activity(activity, N, title,sim):
     if len(activity) == 0:
