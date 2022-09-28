@@ -49,7 +49,6 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     for sim in range(p.sim_number):
         # weights
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
-        print(max(np.linalg.eigvals(W_rec)).real)
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
 
         # eye matrix
