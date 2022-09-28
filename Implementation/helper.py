@@ -8,38 +8,6 @@ import matplotlib.pyplot as plt
 mpl.rcParams["axes.spines.right"] = False
 mpl.rcParams["axes.spines.top"] = False
 
-def distributionInput2(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input,
-                      input_cs, input_cc, input_pv, input_sst, N):
-    """
-    Generates a moving bar as input to CS, CC, PV, SST.
-
-    """
-
-    a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
-    b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
-
-    inputs = []
-    for t in range(T):
-        inputs.append(np.abs(amplitude * np.cos(
-            spatialF * a_data * np.cos(orientation) + spatialF * b_data * np.sin(
-                orientation) - spatialPhase) * np.cos(
-            temporalF * t)))
-
-    inputs = np.array(inputs)
-
-    # static input (if neurons don't receive moving bar input)
-    if input_cs != 'bar':
-        inputs[:, :N[0]] = input_cs
-    if input_cc != 'bar':
-        inputs[:, N[0]:sum(N[:2])] = input_cc
-    if input_pv != 'bar':
-        inputs[:, sum(N[:2]):sum(N[:3])] = input_pv
-    if input_sst != 'bar':
-        inputs[:, sum(N[:3]):] = input_sst
-
-    return (inputs)
-
-
 def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
     """
     Generates a moving bar as input to CS, CC, PV, SST.
