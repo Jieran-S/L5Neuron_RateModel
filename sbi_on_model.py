@@ -6,7 +6,7 @@ import math
 import os
 
 import Implementation.network_model as nm
-from Implementation.helper import distributionInput_sbi, generate_connectivity, \
+from Implementation.helper import distributionInput, generate_connectivity, \
     calculate_selectivity_sbi
 import configs.test_config_sbi as p
 
@@ -64,7 +64,7 @@ def run_simulation(params):
                                   gamma = p.gamma)
 
             # define inputs
-            inputs = distributionInput_sbi(spatialF=spatialF,temporalF=temporalF,orientation=g,
+            inputs = distributionInput(spatialF=spatialF,temporalF=temporalF,orientation=g,
                             spatialPhase=spatialPhase,amplitude=amplitude,T=Sn.tsteps,steady_input=steady_input,N = N)
 
             # run
@@ -137,8 +137,8 @@ def run_simulation(params):
         for d in selectivity_data_i:
             row.append(d)
     row = row + [os_rel,ds_rel,ds_paper_rel, nan_counter/p.sim_number, not_eq_counter/p.sim_number]
-    row = np.array(row)
     print(row)
+    row = np.array(row)
     return row
 
 ############### prepare csv file ###############

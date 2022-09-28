@@ -8,7 +8,7 @@ update_function = 'version_normal'
 integrator = 'forward_euler'
 delta_t = 0.01
 tau = 0.1
-Ttau = 500
+Ttau = 300
 
 ####### Network parameters #######
 learning_rule = 'none'
@@ -28,7 +28,7 @@ prob = np.array([[0.16, 0, 0.18, 0.23],
                   [0.52, 0.13, 0.29, 0.1]])
 
 # number of CS, CC, PV and SST neurons
-N = np.array([45, 275, 46, 34])
+N = np.array([100, 100, 25, 25])
 
 w_noise = 0.03 # synaptic weight noise
 
@@ -37,16 +37,14 @@ nonlinearity_rule = 'supralinear'
 gamma = 1
 
 ####### Input #######
+# [0.0625,0.125,0.25,0.5,1,2,4,8,16]
+input_cs = ['bar']  # bar means moving bar input
+input_cc = ['bar']
+input_pv = [1,2]
+input_sst = [1,2]
 degree = [0, 90, 180, 270]
-
-input_cs_steady = [0]
-input_cc_steady = [0]
-input_pv_steady = [1]
-input_sst_steady = [1]
-input_cs_amplitude = [1]
-input_cc_amplitude = [1]
-input_pv_amplitude = [1]
-input_sst_amplitude = [1]
 spatialF = [1]
 temporalF = [1]
 spatialPhase = [1]
+amplitude = [1]
+steady_input = 0

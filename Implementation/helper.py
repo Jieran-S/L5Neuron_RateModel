@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 mpl.rcParams["axes.spines.right"] = False
 mpl.rcParams["axes.spines.top"] = False
 
-def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input,
+def distributionInput2(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input,
                       input_cs, input_cc, input_pv, input_sst, N):
     """
     Generates a moving bar as input to CS, CC, PV, SST.
@@ -40,7 +40,7 @@ def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude,
     return (inputs)
 
 
-def distributionInput_sbi(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
+def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
     """
     Generates a moving bar as input to CS, CC, PV, SST.
 
@@ -232,7 +232,7 @@ def calculate_selectivity(activity_popu):
 
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,ds_paper_mean_data,ds_paper_std_data)
 
-def plot_activity(activity, N, title):
+def plot_activity(activity, N, title,sim):
     if len(activity) == 0:
         return(0)
     activity_cs = activity[:, :, :N[0]]
@@ -245,27 +245,27 @@ def plot_activity(activity, N, title):
         for i in range(activity_cs.shape[2]):
             plt.plot(range(activity_cs.shape[1]),activity_cs[g,:,i],c='grey',alpha=0.5)
         plt.title('CS')
-        title_save = title+ '/' + str(g)+ '_CS.png'
+        title_save = title+ '/' + str(sim) + str(g)+ '_CS.png'
         fig.savefig(title_save)
 
         fig, axs = plt.subplots()
         for i in range(activity_cc.shape[2]):
             plt.plot(range(activity_cc.shape[1]), activity_cc[g,:,i], c='grey', alpha=0.5)
         plt.title('CC')
-        title_save = title + '/' + str(g) + '_CC.png'
+        title_save = title + '/' + str(sim) + str(g) + '_CC.png'
         fig.savefig(title_save)
 
         fig, axs = plt.subplots()
         for i in range(activity_pv.shape[2]):
             plt.plot(range(activity_pv.shape[1]), activity_pv[g,:,i], c='grey', alpha=0.5)
         plt.title('PV')
-        title_save = title + '/' + str(g) + '_PV.png'
+        title_save = title + '/' + str(sim) + str(g) + '_PV.png'
         fig.savefig(title_save)
 
         fig, axs = plt.subplots()
         for i in range(activity_sst.shape[2]):
             plt.plot(range(activity_sst.shape[1]), activity_sst[g,:,i], c='grey', alpha=0.5)
         plt.title('SST')
-        title_save = title + '/' + str(g) + '_SST.png'
+        title_save = title + '/' + str(sim) + str(g) + '_SST.png'
         fig.savefig(title_save)
 

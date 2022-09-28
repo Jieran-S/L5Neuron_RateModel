@@ -17,3 +17,9 @@ data/figures/09:22:2022_11:22:26/3_CS.png
 *.0
 *.ipynb
 sbi/
+*.c
+*.so
+*.o
+*.pyc
+*.pyc
+configs/__pycache__/test_config.cpython-39.pyc
