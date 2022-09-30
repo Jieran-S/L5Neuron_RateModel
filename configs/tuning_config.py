@@ -1,14 +1,14 @@
 import numpy as np
 
 ####### simulation parameters #######
-sim_number = 100
-jobs_number = 100
+sim_number = 10
+jobs_number = 50
 name_sim ='os_ds_'
 update_function = 'version_normal'
 integrator = 'forward_euler'
 delta_t = 0.01
 tau = 0.1
-Ttau = 500
+Ttau = 300
 
 ####### Network parameters #######
 learning_rule = 'none'
@@ -50,3 +50,4 @@ input_sst_amplitude = [0,0.125,0.25,0.5,1,2,4]
 spatialF = [1]
 temporalF = [1]
 spatialPhase = [1]
+cc_cs_weight = [0,0.03125,0.0625,0.125,0.25,0.5,0.75,1]

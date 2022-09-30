@@ -21,11 +21,20 @@ np.random.seed(42)
 def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady,
     input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude,
     spatialF, temporalF, spatialPhase,start_time,title):
+    """
+    not_before = 0
+    if not(input_cs_steady==0 and input_cc_steady==0 and input_pv_steady==0 and input_sst_steady==0):
+        if not(input_cs_steady == 0 and input_cc_steady == 0 and input_pv_steady == 0 and input_sst_steady == 1):
+            if not(input_cs_steady == 0 and input_cc_steady == 0 and input_pv_steady == 1 and input_sst_steady == 0):
+                if not(input_cs_steady == 0 and input_cc_steady == 0 and input_pv_steady == 1 and input_sst_steady == 1):
+                    not_before = 1"""
+
 
     # network parameters
     N = p.N
     prob = p.prob
     w_initial = p.w_initial
+    #w_initial[1,0] = cc_cs_weight
     w_noise = p.w_noise
 
     # input parameters
@@ -63,7 +72,6 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
 
         ################## iterate through different inputs ##################
         for g in radians:
-
             # build network here
             Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
                                   integrator=p.integrator, delta_t=p.delta_t, tau=p.tau, Ttau=p.Ttau,
@@ -92,14 +100,13 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
             check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
             if check_eq > 0:
                 not_eq_counter += 1
-                print('not eq')
                 break
 
             if g == radians[-1]:
                 success = 1
             activity_data.append(activity)
         activity = np.array(activity_data)
-        plot_activity(activity, N, 'data/figures',sim)
+        #plot_activity(activity, N, 'data/figures',sim)
 
         if success:
             # mean and std of activity
@@ -148,10 +155,6 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
 
     # calculate mean of orientation and direction selectivity
     if os_mean_all != []:
-        a_mean_data = np.mean(np.array(a_mean_all), axis=0)
-        a_std_data = np.std(np.array(a_mean_all), axis=0)
-        a_std_sim_data = np.mean(np.array(a_std_all), axis=0)
-
         os_mean_data = np.mean(np.array(os_mean_all),axis=0)
         os_std_data = np.std(np.array(os_mean_all), axis=0)
         os_std_sim_data = np.mean(np.array(os_std_all), axis=0)
@@ -172,7 +175,10 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         os_mean_data, os_std_data, ds_mean_data, ds_std_data, os_paper_mean_data, os_paper_std_data = \
             [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
         os_std_sim_data, ds_std_sim_data, os_paper_std_sim_data = [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
-        a_mean_data, a_std_data, a_std_sim_data = [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
+
+    a_mean_data = np.mean(np.array(a_mean_all), axis=0)
+    a_std_data = np.std(np.array(a_mean_all), axis=0)
+    a_std_sim_data = np.mean(np.array(a_std_all), axis=0)
 
     # collect results here
     row = [input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady,
@@ -225,14 +231,14 @@ f.close()
 ############### start simulation ###############
 
 start_time = time.time()
-
+"""
 run_simulation(input_cs_steady=1,input_cc_steady=0,input_pv_steady=1,input_sst_steady=1,
                input_cs_amplitude=2,input_cc_amplitude=1,input_pv_amplitude=0.9,input_sst_amplitude=0.9,
-               spatialF=1,temporalF=1,spatialPhase=1,start_time=start_time,title=title)
+               spatialF=1,temporalF=1,spatialPhase=1,start_time=start_time,title=title)"""
 
 # use joblib to parallelize simulations with different parameter values
 
-"""Parallel(n_jobs=p.jobs_number)(delayed(run_simulation)(input_cs_steady, input_cc_steady, input_pv_steady,
+Parallel(n_jobs=p.jobs_number)(delayed(run_simulation)(input_cs_steady, input_cc_steady, input_pv_steady,
                                                        input_sst_steady,input_cs_amplitude, input_cc_amplitude,
                                                        input_pv_amplitude, input_sst_amplitude,spatialF,
                                                        temporalF, spatialPhase,start_time,title)
@@ -246,4 +252,4 @@ run_simulation(input_cs_steady=1,input_cc_steady=0,input_pv_steady=1,input_sst_s
                     for input_sst_amplitude in p.input_sst_amplitude
                     for spatialF in p.spatialF
                     for temporalF in p.temporalF
-                    for spatialPhase in p.spatialPhase)"""
+                    for spatialPhase in p.spatialPhase)

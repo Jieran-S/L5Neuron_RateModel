@@ -8,7 +8,7 @@ update_function = 'version_normal'
 integrator = 'forward_euler'
 delta_t = 0.01
 tau = 0.1
-Ttau = 500
+Ttau = 300
 
 ####### Network parameters #######
 learning_rule = 'none'

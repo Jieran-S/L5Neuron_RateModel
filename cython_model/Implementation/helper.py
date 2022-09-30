@@ -23,13 +23,8 @@ def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude,
     for popu in N_indices:
         inputs_p = []
 
-        if steady_input[i] > 0.5:
-            for t in range(T):
-                inputs_p.append(np.abs(amplitude[i] * np.cos(
-                    spatialF * a_data[popu[0]:popu[1]] * np.cos(orientation) +
-                    spatialF * b_data[popu[0]:popu[1]] * np.sin(orientation) - spatialPhase)
-                                       * np.cos(temporalF)))
-            inputs_p = np.array(inputs_p)
+        if steady_input[i] < 0.5:
+            inputs_p = np.ones((T, N[i])) * amplitude[i]
         else:
             for t in range(T):
                 inputs_p.append(np.abs(amplitude[i] * np.cos(
@@ -153,7 +148,7 @@ def calculate_selectivity_sbi(activity_popu):
         ds_mean_data.append(np.mean(ds))
         os_paper_mean_data.append(np.mean(os_paper))
 
-    return (os_mean_data,ds_mean_data,os_paper_mean_data)
+    return np.array([os_mean_data,ds_mean_data,os_paper_mean_data])
 
 def calculate_selectivity(activity_popu):
     """

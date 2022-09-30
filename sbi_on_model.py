@@ -33,8 +33,8 @@ def run_simulation(params):
 
     # Evaluation metrics
     nan_counter, not_eq_counter = 0, 0
-    os_rel, ds_rel, ds_paper_rel = 0,0,0
-    os_mean_all, ds_mean_all, ds_paper_mean_all, n_rel_all = [], [], [], []
+    os_rel, ds_rel, os_paper_rel = 0,0,0
+    os_mean_all, ds_mean_all, os_paper_mean_all, n_rel_all = [], [], [], []
 
     ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
@@ -44,6 +44,7 @@ def run_simulation(params):
 
         # weights
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
+        W_rec = W_rec / max(np.linalg.eigvals(W_rec).real)
 
         # eye matrix
         num_neurons = W_rec.shape[0]
@@ -106,37 +107,36 @@ def run_simulation(params):
                 n_rel.append(n_on/N[popu])
             n_rel_all.append(n_rel)
 
-            os_mean, ds_mean, ds_paper_mean= calculate_selectivity_sbi(activity_all)
+            os_mean, ds_mean, os_paper_mean= calculate_selectivity_sbi(activity_all)
             os_mean_all.append(os_mean)
             ds_mean_all.append(ds_mean)
-            ds_paper_mean_all.append(ds_paper_mean)
+            os_paper_mean_all.append(os_paper_mean)
 
     # calculate mean of orientation and direction selectivity
     if os_mean_all != []:
         n_rel_data = np.mean(np.array(n_rel_all),axis=0)
         os_mean_data = np.mean(np.array(os_mean_all),axis=0)
         ds_mean_data = np.mean(np.array(ds_mean_all),axis=0)
-        ds_paper_mean_data = np.mean(np.array(ds_paper_mean_all), axis=0)
+        os_paper_mean_data = np.mean(np.array(os_paper_mean_all), axis=0)
 
         if np.abs((os_mean_data[0] - os_mean_data[1])) > 0.00001:
             os_rel = (os_mean_data[0] - os_mean_data[1])/(os_mean_data[0] + os_mean_data[1])
         if np.abs((ds_mean_data[0] - ds_mean_data[1])) > 0.00001:
             ds_rel = (ds_mean_data[0] - ds_mean_data[1]) / (ds_mean_data[0] + ds_mean_data[1])
-        if np.abs((ds_paper_mean_data[0] - ds_paper_mean_data[1])) > 0.00001:
-            ds_paper_rel = \
-                (ds_paper_mean_data[0] - ds_paper_mean_data[1]) / (ds_paper_mean_data[0] + ds_paper_mean_data[1])
+        if np.abs((os_paper_mean_data[0] - os_paper_mean_data[1])) > 0.00001:
+            os_paper_rel = \
+                (os_paper_mean_data[0] - os_paper_mean_data[1]) / (os_paper_mean_data[0] + os_paper_mean_data[1])
     else:
-        n_rel_data, os_mean_data, ds_mean_data, ds_paper_mean_data = \
-            [0,0], [0,0], [0,0], [0,0]
-            #[None, None], [None, None], [None, None], [None, None]
+        n_rel_data, os_mean_data, ds_mean_data, os_paper_mean_data = \
+            [math.nan, math.nan], [math.nan, math.nan], [math.nan, math.nan], [math.nan, math.nan]
 
     # collect results here
     row = []
-    selectivity_data = [os_mean_data, ds_mean_data, ds_paper_mean_data, n_rel_data]
+    selectivity_data = [os_mean_data, ds_mean_data, os_paper_mean_data, n_rel_data]
     for selectivity_data_i in selectivity_data:
         for d in selectivity_data_i:
             row.append(d)
-    row = row + [os_rel,ds_rel,ds_paper_rel, nan_counter/p.sim_number, not_eq_counter/p.sim_number]
+    row = row + [os_rel,ds_rel,os_paper_rel, nan_counter/p.sim_number, not_eq_counter/p.sim_number]
     print(row)
     row = np.array(row)
     return row
