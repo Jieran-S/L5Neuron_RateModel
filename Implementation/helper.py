@@ -259,12 +259,14 @@ def calculate_selectivity(activity_popu):
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,ds_paper_mean_data,ds_paper_std_data)
 
 def plot_activity(activity, N, title,sim):
+
     '''
     activity: 3d matrix with infomraiton on the strength of the synpase? 
     '''
     if len(activity) == 0:
         return(0)
     # Extract the connectivity data for each cell population? 
+    
     activity_cs = activity[:, :, :N[0]]
     activity_cc = activity[:, :, sum(N[:1]):sum(N[:2])]
     activity_pv = activity[:, :, sum(N[:2]):sum(N[:3])]

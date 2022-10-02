@@ -28,6 +28,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     w_initial = p.w_initial
     w_noise = p.w_noise
 
+
     # input parameters (parameter for tuning)
     amplitude = [input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude]
     steady_input = [input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady]
@@ -75,7 +76,6 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
             inputs = distributionInput(spatialF=spatialF, temporalF=temporalF, orientation=g,
                                            spatialPhase=spatialPhase, amplitude=amplitude, T=Sn.tsteps,
                                            steady_input=True, N=N)
-
             # run
             activity, w = Sn.run(inputs, initial_values)
             activity = np.asarray(activity)
@@ -101,7 +101,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
             activity_data.append(activity)
         activity = np.array(activity_data)
         plot_activity(activity, N, 'data/figures',sim)
-        
+      
         '''
         # No need for the part simulating the changing in direction. Change it earlier also
         if success:
