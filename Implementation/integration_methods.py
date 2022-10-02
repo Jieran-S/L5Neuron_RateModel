@@ -2,10 +2,19 @@ import numpy as np
 from scipy import integrate
 
 def forward_euler(fprime, x, **kwargs):
+    '''
+    fprime: new act generation methods, i.e. update_network function
+    fprime: can also be learning rules when updating the W_rec matrix
+    x: Current parameter
+    '''
     delta_t=kwargs['delta_t']
     return (x + delta_t*fprime(x, kwargs))
 
 def runge_kutta_explicit(fprime, x, **kwargs):
+    '''
+    fprime: new act generation methods, i.e. update_network function
+    x: Current parameter
+    '''
     delta_t=kwargs['delta_t']
     k1 = fprime(x, kwargs)
     k2 = fprime(x + 0.5*k1*delta_t, kwargs)
@@ -16,10 +25,21 @@ def runge_kutta_explicit(fprime, x, **kwargs):
     return np.clip(x_new, 0, None)
 
 
-def update_network(x, kwargs):    
+def update_network(x, kwargs):
+    '''
+    nonlinearity: nonlin function, either supralinear(ReLu), tanh or Sigmoid
+    '''    
+    # Define the timestep to jump and nonlinear function
     timescale=1/(kwargs['tau'])
     nonlinearity=kwargs['nonlinearity']    
-    update= -x + nonlinearity(np.dot(kwargs['w_rec'], x) + np.dot(kwargs['w_input'], kwargs['Input']))
+
+    # 1st term: inner product of connectivity matrix and current PSP intensity + random input 
+    #           resulting in the current input stage
+    # 2nd term: time step input, only return the input value from the time step?? There's no 2nd input 
+    # from the system??
+    update= -x + nonlinearity( np.dot(kwargs['w_rec'], x) + np.dot(kwargs['w_input'], kwargs['Input']) )
+    
+    # linearized change amount
     return timescale*update
 
 
