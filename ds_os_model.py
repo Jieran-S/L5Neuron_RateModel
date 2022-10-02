@@ -14,7 +14,7 @@ from Implementation.helper import distributionInput, generate_connectivity, calc
 if len(sys.argv) != 0:
     p = importlib.import_module(sys.argv[1])
 else:
-    import test_config as p
+    import configs.test_config as p
 
 np.random.seed(42)
 
@@ -28,7 +28,8 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     w_initial = p.w_initial
     w_noise = p.w_noise
 
-    # input parameters
+
+    # input parameters (parameter for tuning)
     amplitude = [input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude]
     steady_input = [input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady]
 
@@ -47,7 +48,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
 
     ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
-        # weights
+        # weights and scale the weights 
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
 
@@ -62,6 +63,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         success = 0
 
         ################## iterate through different inputs ##################
+        # Change the orientation value? taking g=1 or sth
         for g in radians:
 
             # build network here
@@ -73,8 +75,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
             # define inputs
             inputs = distributionInput(spatialF=spatialF, temporalF=temporalF, orientation=g,
                                            spatialPhase=spatialPhase, amplitude=amplitude, T=Sn.tsteps,
-                                           steady_input=steady_input, N=N)
-
+                                           steady_input=True, N=N)
             # run
             activity, w = Sn.run(inputs, initial_values)
             activity = np.asarray(activity)
@@ -100,7 +101,9 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
             activity_data.append(activity)
         activity = np.array(activity_data)
         plot_activity(activity, N, 'data/figures',sim)
-
+      
+        '''
+        # No need for the part simulating the changing in direction. Change it earlier also
         if success:
             # mean and std of activity
             a_mean = [np.mean(activity[:, -1500:, :N[0]]),
@@ -191,9 +194,9 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     with open(title, 'a') as f:
         writer = csv.writer(f)
         writer.writerow(row)
-
+    '''
 ############### prepare csv file ###############
-
+'''
 now = datetime.now() # current date and time
 time_id = now.strftime("%m:%d:%Y_%H:%M:%S")
 title = 'data/' + p.name_sim + time_id + '.csv'
@@ -221,7 +224,7 @@ f = open(title, 'w')
 writer = csv.writer(f)
 writer.writerow(row)
 f.close()
-
+'''
 ############### start simulation ###############
 
 start_time = time.time()

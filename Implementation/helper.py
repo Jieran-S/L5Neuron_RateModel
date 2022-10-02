@@ -8,13 +8,18 @@ import matplotlib.pyplot as plt
 mpl.rcParams["axes.spines.right"] = False
 mpl.rcParams["axes.spines.top"] = False
 
-def distributionInput2(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input,
-                      input_cs, input_cc, input_pv, input_sst, N):
+def distributionInput2(spatialF, temporalF, orientation, spatialPhase, amplitude, T,
+                      input_cs, input_cc, input_pv, input_sst, N, steady_input=True):
     """
-    Generates a moving bar as input to CS, CC, PV, SST.
-
+    Generates a moving bar as input to CS, CC, PV, SST. 
+    Using the function from textbook theoretical neurosciences. 
+    Turning the image into stimulus by converting the difference between that pixel over time and the 
+    difference between the pixel and the overall backaground level of luminance. 
+    Output: Stimulus to the L5 neuron
+    Steady_input: making a check to make sure the input is steady.
     """
 
+    # input for the moving bar 
     a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
     b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
 
@@ -26,15 +31,16 @@ def distributionInput2(spatialF, temporalF, orientation, spatialPhase, amplitude
             temporalF * t)))
 
     inputs = np.array(inputs)
-
+    
     # static input (if neurons don't receive moving bar input)
-    if input_cs != 'bar':
+    if steady_input:
+    # if input_cs != 'bar':
         inputs[:, :N[0]] = input_cs
-    if input_cc != 'bar':
+    # if input_cc != 'bar':
         inputs[:, N[0]:sum(N[:2])] = input_cc
-    if input_pv != 'bar':
+    # if input_pv != 'bar':
         inputs[:, sum(N[:2]):sum(N[:3])] = input_pv
-    if input_sst != 'bar':
+    # if input_sst != 'bar':
         inputs[:, sum(N[:3]):] = input_sst
 
     return (inputs)
@@ -77,11 +83,12 @@ def create_synapses(N_pre, N_post, c, same_population=False):
     Create random connections between two groups or within one group.
     :param N_pre: number of neurons in pre group
     :param N_post: number of neurons in post group
-    :param c:   connectivity
+    :param c:   connectivity (probability for connecting, synaptic strength)
     :param same_population: whether to allow autapses (connection of neuron to itself if pre = post population)
     :return: 2xN_con array of connection indices (pre-post pairs)
     """
 
+    # indegree: the expectation of how many pre neurons will form synapses with post neurons
     indegree = int(np.round(c * N_pre))  # no variance of indegree = fixed indegree
 
     i = np.array([], dtype=int)
@@ -89,23 +96,27 @@ def create_synapses(N_pre, N_post, c, same_population=False):
 
     for n in range(N_post):
 
-        if same_population:  # if autapses are disabled, remove index of present post neuron from pre options
+        if same_population:  
+            # if autapses are disabled, remove index of present post neuron from pre options
             opts = np.delete(np.arange(N_pre, dtype=int), n)
         else:
             opts = np.arange(N_pre, dtype=int)
 
+        # Randomly select the expected number of neurons from pre to connect with post neurons
         pre = np.random.choice(opts, indegree, replace=False)
 
-        # add connection indices to list
-        i = np.hstack((i, pre))
+        # add connection indices to list pre -> indexes for pre-neurons; post -> index of the post neuron
+        i = np.hstack((i, pre))  
         j = np.hstack((j, np.repeat(n, indegree)))
 
+    # return a 2x(N_post*indegree) array, representing the connection between each pair of pre-post neurons
     return np.array([i, j])
 
 def normal_distr_weights(weight, w_noise):
     """
     Generate weights with normally distributed weight noise.
-
+    weight: Experimental tested weight in the literature. The target 
+    situation that we want to achieve.
     """
 
     if weight > 0:
@@ -118,24 +129,39 @@ def normal_distr_weights(weight, w_noise):
 def generate_connectivity(N, p, w_initial, w_noise):
     """
     Generates a connectivity matrix where rows are postsyn. neuron and columns are presynaptic neuron.
-
+    p: Probability matrix 4x4 (connection probability matrix of CS, CC, PV and SST neurons (rows are the presyn cell))
+    w_initial: the target weight to achieve according to Campognola 2022 PSP amplitude. Presented 
+               in terms of synaptic strength matrix (sequared, 4x4) where rows are presynaptic cells
+    w_noise: degree of noise introduced to the synpatic connection
+    N: 1x4 vector representing the number of CS, CC, PV and SST neurons
     """
-
+    # Individual neuron matrix
     W_rec = np.zeros((np.sum(N), np.sum(N)))
 
+    # iterate through all cell population
     for pre in range(p.shape[0]):
         for post in range(p.shape[0]):
             same_population = False
+            # For neurons of the same types, considering the stimulation among themselves
             if pre == post:
                 same_population = True
+            # Forming the connection index between different types of neurons
             con = create_synapses(N[pre], N[post], p[pre][post], same_population)
+
+            # Go through every column -> aka go through all the synpases
             for i in range(con.shape[1]):
+                # identifying the corresponding pre/post neurons of the synpase
                 pre_neuron = con[0][i]
                 post_neuron = con[1][i]
+                
+                # region: How much should we skip for the target population
                 step_pre = np.sum(N[:pre])
                 step_post = np.sum(N[:post])
+
+                # Adding the connectivity between the two neurons in the final matrix
                 W_rec[step_pre + pre_neuron][step_post + post_neuron] = normal_distr_weights(w_initial[pre][post],
                                                                                              w_noise)
+    # Why tranposed? 
     return (W_rec.T)
 
 def calculate_selectivity_sbi(activity_popu):
@@ -185,7 +211,7 @@ def calculate_selectivity_sbi(activity_popu):
 def calculate_selectivity(activity_popu):
     """
     Calculate mean and std of selectivity.
-
+    No need to be used in my project.
     """
 
     os_mean_data = []  # orientation selectivity
@@ -233,8 +259,14 @@ def calculate_selectivity(activity_popu):
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,ds_paper_mean_data,ds_paper_std_data)
 
 def plot_activity(activity, N, title,sim):
+
+    '''
+    activity: 3d matrix with infomraiton on the strength of the synpase? 
+    '''
     if len(activity) == 0:
         return(0)
+    # Extract the connectivity data for each cell population? 
+    
     activity_cs = activity[:, :, :N[0]]
     activity_cc = activity[:, :, sum(N[:1]):sum(N[:2])]
     activity_pv = activity[:, :, sum(N[:2]):sum(N[:3])]
