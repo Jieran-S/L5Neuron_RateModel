@@ -10,26 +10,17 @@ import math
 import importlib
 
 import Implementation.network_model as nm
-from Implementation.helper import distributionInput_negative, generate_connectivity, calculate_selectivity, plot_activity
+from Implementation.helper import distributionInput, generate_connectivity, calculate_selectivity, plot_activity
 if len(sys.argv) != 0:
     p = importlib.import_module(sys.argv[1])
 else:
-    import configs.test_config as p
+    import test_config as p
 
 np.random.seed(42)
 
 def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady,
-    input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude,cc_cs_weight,
+    input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude,cc_cs_weight,sst_vary,pv_vary,
     spatialF, temporalF, spatialPhase,start_time,title):
-    """
-    not_before = 0
-    if not(input_cs_steady==0 and input_cc_steady==0 and input_pv_steady==0 and input_sst_steady==0):
-        if not(input_cs_steady == 0 and input_cc_steady == 0 and input_pv_steady == 0 and input_sst_steady == 1):
-            if not(input_cs_steady == 0 and input_cc_steady == 0 and input_pv_steady == 1 and input_sst_steady == 0):
-                if not(input_cs_steady == 0 and input_cc_steady == 0 and input_pv_steady == 1 and input_sst_steady == 1):
-                    if not (input_cs_steady == 0 and input_cc_steady == 1 and input_pv_steady == 0 and input_sst_steady == 0):
-                        not_before = 1
-    """
 
     # network parameters
     N = p.N
@@ -38,9 +29,8 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     w_initial[1,0] = cc_cs_weight
     w_noise = p.w_noise
 
-
-    # input parameters (parameter for tuning)
-    amplitude = [input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude]
+    # input parameters
+    amplitude = [input_cs_amplitude, input_cc_amplitude, input_pv_amplitude*sst_vary, input_sst_amplitude*pv_vary]
     steady_input = [input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady]
 
     # prepare different orientation inputs
@@ -58,7 +48,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
 
     ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
-        # weights and scale the weights 
+        # weights
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
 
@@ -71,11 +61,8 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
 
         activity_data = []
         success = 0
-        a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
-        b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
 
         ################## iterate through different inputs ##################
-        # Change the orientation value? taking g=1 or sth
         for g in radians:
             # build network here
             Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
@@ -84,10 +71,9 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
                                   gamma=p.gamma)
 
             # define inputs
-            inputs = distributionInput_negative(a_data=a_data, b_data=b_data,
-                                       spatialF=spatialF, temporalF=temporalF, orientation=g,
-                                       spatialPhase=spatialPhase, amplitude=amplitude, T=Sn.tsteps,
-                                       steady_input=steady_input, N=N)
+            inputs = distributionInput(spatialF=spatialF, temporalF=temporalF, orientation=g,
+                                           spatialPhase=spatialPhase, amplitude=amplitude, T=Sn.tsteps,
+                                           steady_input=steady_input, N=N)
 
             # run
             activity, w = Sn.run(inputs, initial_values)
@@ -112,11 +98,8 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
                 success = 1
             activity_data.append(activity)
         activity = np.array(activity_data)
+        #plot_activity(activity, N, 'data/figures',sim)
 
-        plot_activity(activity, N, 'data/figures',sim)
-      
-        '''
-        # No need for the part simulating the changing in direction. Change it earlier also
         if success:
             # mean and std of activity
             a_mean = [np.mean(activity[:, -1500:, :N[0]]),
@@ -177,9 +160,10 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         os_paper_std_sim_data = np.mean(np.array(os_paper_std_all), axis=0)
 
         if os_mean_data[1] > 0.00001 and ds_mean_data[1] > 0.00001:
-            os_rel = (os_mean_data[0] - os_mean_data[1])/(os_mean_data[0] + os_mean_data[1])
-            ds_rel = (ds_mean_data[0] - ds_mean_data[1])/(ds_mean_data[0] + ds_mean_data[1])
-            os_paper_rel = (os_paper_mean_data[0] - os_paper_mean_data[1])/(os_paper_mean_data[0] + os_paper_mean_data[1])
+            os_rel = (os_mean_data[0] - os_mean_data[1]) / (os_mean_data[0] + os_mean_data[1])
+            ds_rel = (ds_mean_data[0] - ds_mean_data[1]) / (ds_mean_data[0] + ds_mean_data[1])
+            os_paper_rel = (os_paper_mean_data[0] - os_paper_mean_data[1]) / (
+                        os_paper_mean_data[0] + os_paper_mean_data[1])
     else:
         os_mean_data, os_std_data, ds_mean_data, ds_std_data, os_paper_mean_data, os_paper_std_data = \
             [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
@@ -191,7 +175,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
 
     # collect results here
     row = [input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady,
-        input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude,cc_cs_weight,
+        input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude, cc_cs_weight, sst_vary, pv_vary,
         spatialF, temporalF, spatialPhase,nan_counter,not_eq_counter,activity_off]
     selectivity_data = [os_mean_data, os_std_data, os_std_sim_data,
                         ds_mean_data, ds_std_data, ds_std_sim_data,
@@ -209,15 +193,15 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     with open(title, 'a') as f:
         writer = csv.writer(f)
         writer.writerow(row)
-    '''
+
 ############### prepare csv file ###############
-'''
+
 now = datetime.now() # current date and time
 time_id = now.strftime("%m:%d:%Y_%H:%M:%S")
 title = 'data/' + p.name_sim + time_id + '.csv'
 
 row = ['cs_steady', 'cc_steady', 'pv_steady', 'sst_steady',
-        'cs_amplitude', 'cc_amplitude', 'pv_amplitude', 'sst_amplitude','cc_cs_weight',
+        'cs_amplitude', 'cc_amplitude', 'pv_amplitude', 'sst_amplitude', 'cc_cs_weight', 'sst_vary', 'pv_vary',
         'spatialF', 'temporalF', 'spatialPhase',
         'nan_counter','not_eq_counter','activity_off',
         'os_mean1','os_mean2','os_mean3','os_mean4',
@@ -239,7 +223,7 @@ f = open(title, 'w')
 writer = csv.writer(f)
 writer.writerow(row)
 f.close()
-'''
+
 ############### start simulation ###############
 
 start_time = time.time()
@@ -250,18 +234,16 @@ run_simulation(input_cs_steady=1,input_cc_steady=0,input_pv_steady=1,input_sst_s
 
 # use joblib to parallelize simulations with different parameter values
 
+listinput = np.load('data/input_data.npy')
+
 Parallel(n_jobs=p.jobs_number)(delayed(run_simulation)(input_cs_steady, input_cc_steady, input_pv_steady,
                                                        input_sst_steady,input_cs_amplitude, input_cc_amplitude,
                                                        input_pv_amplitude, input_sst_amplitude,cc_cs_weight,
+                                                       sst_vary,pv_vary,
                                                        spatialF,temporalF, spatialPhase,start_time,title)
-                    for input_cs_steady in p.input_cs_steady
-                    for input_cc_steady in p.input_cc_steady
-                    for input_pv_steady in p.input_pv_steady
-                    for input_sst_steady in p.input_sst_steady
-                    for input_cs_amplitude in p.input_cs_amplitude
-                    for input_cc_amplitude in p.input_cc_amplitude
-                    for input_pv_amplitude in p.input_pv_amplitude
-                    for input_sst_amplitude in p.input_sst_amplitude
+                    for [input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady, input_cs_amplitude,input_cc_amplitude, input_pv_amplitude,input_sst_amplitude] in listinput
+                    for sst_vary in p.sst_vary
+                    for pv_vary in p.pv_vary
                     for cc_cs_weight in p.cc_cs_weight
                     for spatialF in p.spatialF
                     for temporalF in p.temporalF

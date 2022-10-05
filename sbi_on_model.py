@@ -7,7 +7,7 @@ import os
 
 import Implementation.network_model as nm
 from Implementation.helper import distributionInput, generate_connectivity, \
-    calculate_selectivity_sbi
+    calculate_selectivity_sbi,plot_activity
 import configs.test_config_sbi as p
 
 def run_simulation(params):
@@ -33,17 +33,19 @@ def run_simulation(params):
 
     # Evaluation metrics
     nan_counter, not_eq_counter = 0, 0
-    os_rel, ds_rel, ds_paper_rel = 0,0,0
-    os_mean_all, ds_mean_all, ds_paper_mean_all, n_rel_all = [], [], [], []
+    os_rel, ds_rel, os_paper_rel = 0,0,0
+    os_mean_all, ds_mean_all, os_paper_mean_all, n_rel_all = [], [], [], []
 
     ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
+        print('Sim')
         title_folder = 'data/figures/sbi'+str(sim)
         if not(os.path.exists(title_folder)):
             os.mkdir(title_folder)
 
         # weights
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
+        W_rec = W_rec / max(np.linalg.eigvals(W_rec).real)
 
         # eye matrix
         num_neurons = W_rec.shape[0]
@@ -54,6 +56,8 @@ def run_simulation(params):
 
         activity_data = []
         success = 0
+        a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
+        b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
 
         ################## iterate through different inputs ##################
         for g in radians:
@@ -64,7 +68,8 @@ def run_simulation(params):
                                   gamma = p.gamma)
 
             # define inputs
-            inputs = distributionInput(spatialF=spatialF,temporalF=temporalF,orientation=g,
+            inputs = distributionInput(a_data=a_data,b_data=b_data,
+                            spatialF=spatialF,temporalF=temporalF,orientation=g,
                             spatialPhase=spatialPhase,amplitude=amplitude,T=Sn.tsteps,steady_input=steady_input,N = N)
 
             # run
@@ -89,6 +94,7 @@ def run_simulation(params):
                 success = 1
             activity_data.append(activity)
         activity = np.array(activity_data)
+        plot_activity(activity, N, title_folder, sim)
 
         if success:
             activity_cs = np.mean(activity[:, -1500:, :N[0]], axis=1)
@@ -106,42 +112,39 @@ def run_simulation(params):
                 n_rel.append(n_on/N[popu])
             n_rel_all.append(n_rel)
 
-            os_mean, ds_mean, ds_paper_mean= calculate_selectivity_sbi(activity_all)
+            os_mean, ds_mean, os_paper_mean= calculate_selectivity_sbi(activity_all)
             os_mean_all.append(os_mean)
             ds_mean_all.append(ds_mean)
-            ds_paper_mean_all.append(ds_paper_mean)
+            os_paper_mean_all.append(os_paper_mean)
 
     # calculate mean of orientation and direction selectivity
     if os_mean_all != []:
         n_rel_data = np.mean(np.array(n_rel_all),axis=0)
         os_mean_data = np.mean(np.array(os_mean_all),axis=0)
         ds_mean_data = np.mean(np.array(ds_mean_all),axis=0)
-        ds_paper_mean_data = np.mean(np.array(ds_paper_mean_all), axis=0)
+        os_paper_mean_data = np.mean(np.array(os_paper_mean_all), axis=0)
 
         if np.abs((os_mean_data[0] - os_mean_data[1])) > 0.00001:
             os_rel = (os_mean_data[0] - os_mean_data[1])/(os_mean_data[0] + os_mean_data[1])
         if np.abs((ds_mean_data[0] - ds_mean_data[1])) > 0.00001:
             ds_rel = (ds_mean_data[0] - ds_mean_data[1]) / (ds_mean_data[0] + ds_mean_data[1])
-        if np.abs((ds_paper_mean_data[0] - ds_paper_mean_data[1])) > 0.00001:
-            ds_paper_rel = \
-                (ds_paper_mean_data[0] - ds_paper_mean_data[1]) / (ds_paper_mean_data[0] + ds_paper_mean_data[1])
+        if np.abs((os_paper_mean_data[0] - os_paper_mean_data[1])) > 0.00001:
+            os_paper_rel = \
+                (os_paper_mean_data[0] - os_paper_mean_data[1]) / (os_paper_mean_data[0] + os_paper_mean_data[1])
     else:
-        n_rel_data, os_mean_data, ds_mean_data, ds_paper_mean_data = \
-            [0,0], [0,0], [0,0], [0,0]
-            #[None, None], [None, None], [None, None], [None, None]
+        n_rel_data, os_mean_data, ds_mean_data, os_paper_mean_data = \
+            [math.nan, math.nan], [math.nan, math.nan], [math.nan, math.nan], [math.nan, math.nan]
 
     # collect results here
     row = []
-    selectivity_data = [os_mean_data, ds_mean_data, ds_paper_mean_data, n_rel_data]
+    selectivity_data = [os_mean_data, ds_mean_data, os_paper_mean_data, n_rel_data]
     for selectivity_data_i in selectivity_data:
         for d in selectivity_data_i:
             row.append(d)
-    row = row + [os_rel,ds_rel,ds_paper_rel, nan_counter/p.sim_number, not_eq_counter/p.sim_number]
+    row = row + [os_rel,ds_rel,os_paper_rel, nan_counter/p.sim_number, not_eq_counter/p.sim_number]
     print(row)
     row = np.array(row)
     return row
 
 ############### prepare csv file ###############
-#print(run_simulation(input_cs_steady=1,input_cc_steady=0,input_pv_steady=1,input_sst_steady=1,
-#                input_cs_amplitude=2,input_cc_amplitude=1,input_pv_amplitude=0.9,input_sst_amplitude=0.9,
-#                spatialF=1,temporalF=1,spatialPhase=1))
+print(run_simulation(np.array([0,0,0,0,0.5,0.5,0,0,1,1,1])))
