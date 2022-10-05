@@ -11,21 +11,6 @@ from HH_helper_functions import syn_current
 import time
 import pickle
 
-# remove top and right axis from plots
-mpl.rcParams["axes.spines.right"] = False
-mpl.rcParams["axes.spines.top"] = False
-
-start_time = time.time()
-
-def simulation_wrapper(params):
-    """
-    Returns summary statistics from conductance values in `params`.
-
-    Summarizes the output of the HH simulator and converts it to `torch.Tensor`.
-    """
-    summstats = torch.as_tensor(run_simulation(params))
-    return summstats
-
 def run_HH_model(params):
 
     params = np.asarray(params)
@@ -42,7 +27,7 @@ def run_HH_model(params):
 
     return dict(data=states.reshape(-1), time=t, dt=dt, I=I.reshape(-1))
 
-def simulation_wrapper2(params):
+def simulation_wrapper(params):
     """
     Returns summary statistics from conductance values in `params`.
 
@@ -52,32 +37,24 @@ def simulation_wrapper2(params):
     summstats = torch.as_tensor(calculate_summary_statistics(obs))
     return summstats
 
-prior_min = [0,0,0,0,0,0,0,0,0,0,0] # np.ones((11,))*1e-4
-prior_max = [1,1,1,1,6,6,6,6,2,2,2]
+with open('data/my_inference.pkl', 'rb') as f:
+    posterior = pickle.load(f)
 
-prior = utils.torchutils.BoxUniform(
-    low=torch.as_tensor(prior_min), high=torch.as_tensor(prior_max)
-)
+observation_summary_statistics = [1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 0, 0]
 
-posterior = infer(
-    simulation_wrapper, prior, method="SNPE", num_simulations=1000, num_workers=4
-)
-
-with open("data/my_posterior2.pkl", "wb") as handle:
-    pickle.dump(posterior, handle)
-
-print('#### t1',time.time()-start_time)
-
-observation_summary_statistics = [1,1,1,1,1,1,1,1,-1,1,1,0,0]
+# true parameters and respective labels
+true_params = np.array([50.0, 5.0])
+labels_params = [r"$g_{Na}$", r"$g_{K}$"]
+observation_trace = run_HH_model(true_params)
+observation_summary_statistics = calculate_summary_statistics(observation_trace)
 
 samples = posterior.sample((10000,), x=observation_summary_statistics)
 
-print('#### t2',time.time()-start_time)
+limits = [[0, 1], [0, 1], [0, 1], [0, 1],
+          [0, 6], [0, 6], [0, 6], [0, 6],
+          [0, 2], [0, 2], [0, 2]]
 
-limits = [[0,1],[0,1],[0,1],[0,1],
-          [0,6],[0,6],[0,6],[0,6],
-          [0,2],[0,2],[0,2]]
-
+limits = [[0.5, 80], [1e-4, 15.0]]
 fig, axes = analysis.pairplot(
     samples,
     limits=limits,
@@ -87,5 +64,3 @@ fig, axes = analysis.pairplot(
 );
 
 fig.savefig('data/figures/sbi2.png')
-
-print('#### t3',time.time()-start_time)

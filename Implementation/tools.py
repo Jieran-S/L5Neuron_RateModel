@@ -2,7 +2,7 @@ import numpy as np
 
 def supralinear(gamma):
     if gamma == 1:
-        return lambda x: np.clip(x , 0, np.inf)
+        return lambda x: np.clip(x , 0, 1)
     else:
         return lambda x: np.concatenate([np.clip(x[:8],0,np.inf),np.clip(x[8:],0,np.inf)**gamma])
 
