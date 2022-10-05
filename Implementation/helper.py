@@ -8,14 +8,11 @@ import matplotlib.pyplot as plt
 mpl.rcParams["axes.spines.right"] = False
 mpl.rcParams["axes.spines.top"] = False
 
-def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
+def distributionInput(a_data,b_data,spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
     """
     Generates a moving bar as input to CS, CC, PV, SST.
 
     """
-
-    a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
-    b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
 
     i = 0
     inputs_p_all = []
@@ -25,17 +22,51 @@ def distributionInput(spatialF, temporalF, orientation, spatialPhase, amplitude,
 
         if steady_input[i] > 0.5:
             for t in range(T):
-                inputs_p.append(np.abs(amplitude[i] * np.cos(
+                inputs_p.append(amplitude[i] * np.cos(
                     spatialF * a_data[popu[0]:popu[1]] * np.cos(orientation) +
                     spatialF * b_data[popu[0]:popu[1]] * np.sin(orientation) - spatialPhase)
-                                       * np.cos(temporalF)))
+                                       * np.cos(temporalF) + amplitude[i])
             inputs_p = np.array(inputs_p)
         else:
             for t in range(T):
-                inputs_p.append(np.abs(amplitude[i] * np.cos(
+                inputs_p.append(amplitude[i] * np.cos(
                     spatialF * a_data[popu[0]:popu[1]] * np.cos(orientation) +
                     spatialF * b_data[popu[0]:popu[1]] * np.sin(orientation) - spatialPhase)
-                                       * np.cos(temporalF * t)))
+                                       * np.cos(temporalF * t) + amplitude[i])
+            inputs_p = np.array(inputs_p)
+
+        i += 1
+        inputs_p_all.append(inputs_p)
+
+    inputs = np.concatenate((inputs_p_all), axis=1)
+
+    return (inputs)
+
+def distributionInput_negative(a_data,b_data,spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
+    """
+    Generates a moving bar as input to CS, CC, PV, SST.
+
+    """
+
+    i = 0
+    inputs_p_all = []
+    N_indices = [[0, N[0]], [sum(N[:1]), sum(N[:2])], [sum(N[:2]), sum(N[:3])], [sum(N[:3]), sum(N)]]
+    for popu in N_indices:
+        inputs_p = []
+
+        if steady_input[i] > 0.5:
+            for t in range(T):
+                inputs_p.append(amplitude[i] * np.cos(
+                    spatialF * a_data[popu[0]:popu[1]] * np.cos(orientation) +
+                    spatialF * b_data[popu[0]:popu[1]] * np.sin(orientation) - spatialPhase)
+                                       * np.cos(temporalF))
+            inputs_p = np.array(inputs_p)
+        else:
+            for t in range(T):
+                inputs_p.append(amplitude[i] * np.cos(
+                    spatialF * a_data[popu[0]:popu[1]] * np.cos(orientation) +
+                    spatialF * b_data[popu[0]:popu[1]] * np.sin(orientation) - spatialPhase)
+                                       * np.cos(temporalF * t))
             inputs_p = np.array(inputs_p)
 
         i += 1
@@ -125,11 +156,9 @@ def calculate_selectivity_sbi(activity_popu):
         preferred_orientation = np.argmax(activity_popu[population], axis=0)
 
         os, ds, os_paper = [], [], []
-        preferred_orientation_freq = [0, 0, 0, 0]
 
         for neuron in range(activity_popu[population].shape[1]):
             s_max_index = preferred_orientation[neuron]
-            preferred_orientation_freq[s_max_index] += 1
 
             # activity of preferred stimulus
             s_pref = activity_popu[population][s_max_index][neuron]
@@ -145,9 +174,9 @@ def calculate_selectivity_sbi(activity_popu):
             # activity of opposite stimulus
             s_oppo = activity_popu[population][(s_max_index + 2) % 4][neuron]
 
-            os.append((s_pref_orient - s_orth) / (s_pref_orient + s_orth))
-            ds.append((s_pref - s_oppo) / (s_pref + s_oppo))
-            os_paper.append((s_pref - s_orth) / (s_pref + s_orth))
+            os.append(np.abs(s_pref_orient - s_orth) / (s_pref_orient + s_orth))
+            ds.append(np.abs(s_pref - s_oppo) / (s_pref + s_oppo))
+            os_paper.append(np.abs(s_pref - s_orth) / (s_pref + s_orth))
 
         os_mean_data.append(np.mean(os))
         ds_mean_data.append(np.mean(ds))

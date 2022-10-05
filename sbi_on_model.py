@@ -7,7 +7,7 @@ import os
 
 import Implementation.network_model as nm
 from Implementation.helper import distributionInput, generate_connectivity, \
-    calculate_selectivity_sbi
+    calculate_selectivity_sbi,plot_activity
 import configs.test_config_sbi as p
 
 def run_simulation(params):
@@ -38,6 +38,7 @@ def run_simulation(params):
 
     ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
+        print('Sim')
         title_folder = 'data/figures/sbi'+str(sim)
         if not(os.path.exists(title_folder)):
             os.mkdir(title_folder)
@@ -55,6 +56,8 @@ def run_simulation(params):
 
         activity_data = []
         success = 0
+        a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
+        b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
 
         ################## iterate through different inputs ##################
         for g in radians:
@@ -65,7 +68,8 @@ def run_simulation(params):
                                   gamma = p.gamma)
 
             # define inputs
-            inputs = distributionInput(spatialF=spatialF,temporalF=temporalF,orientation=g,
+            inputs = distributionInput(a_data=a_data,b_data=b_data,
+                            spatialF=spatialF,temporalF=temporalF,orientation=g,
                             spatialPhase=spatialPhase,amplitude=amplitude,T=Sn.tsteps,steady_input=steady_input,N = N)
 
             # run
@@ -90,6 +94,7 @@ def run_simulation(params):
                 success = 1
             activity_data.append(activity)
         activity = np.array(activity_data)
+        plot_activity(activity, N, title_folder, sim)
 
         if success:
             activity_cs = np.mean(activity[:, -1500:, :N[0]], axis=1)
@@ -142,6 +147,4 @@ def run_simulation(params):
     return row
 
 ############### prepare csv file ###############
-#print(run_simulation(input_cs_steady=1,input_cc_steady=0,input_pv_steady=1,input_sst_steady=1,
-#                input_cs_amplitude=2,input_cc_amplitude=1,input_pv_amplitude=0.9,input_sst_amplitude=0.9,
-#                spatialF=1,temporalF=1,spatialPhase=1))
+print(run_simulation(np.array([0,0,0,0,0.5,0.5,0,0,1,1,1])))
