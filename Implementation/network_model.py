@@ -3,8 +3,8 @@ import sys
 sys.path.append(abspath('') + sep + pardir + sep )
 import numpy as np
 import time
-import tools as snt
-import integration_methods as im
+import Implementation.tools as snt
+import Implementation.integration_methods as im
 
 class SimpleNetwork:
     def __init__(self,
@@ -26,6 +26,7 @@ class SimpleNetwork:
         if W_structure is not None:
             self.W_structure=W_structure
         else:
+            # N x N matrix (postsynaptic neuron no. x total neuron?)
             self.W_structure=np.ones((W_rec.shape[0], W_project.shape[-1]))
         self.delta_t = delta_t
         self.tau=tau
@@ -62,9 +63,9 @@ class SimpleNetwork:
     def _init_learningrule(self):
         if self.learning_rule=='none':
             self.learningrule = im.nonlearning_weights  
-        if self.learning_rule=='BCM_rule_test':
-            self.learningrule = BCM_rule_test
         if self.learning_rule=='BCM':
+            self.learningrule = im.BCM_rule
+        if self.learning_rule=='BCM_slide':
             self.learningrule = im.BCM_rule_sliding_th
             
     def _init_integrator(self):        

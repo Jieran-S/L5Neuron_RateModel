@@ -9,7 +9,7 @@ def forward_euler(fprime, x, **kwargs):
     '''
     delta_t=kwargs['delta_t']
     return (x + delta_t*fprime(x, kwargs))
-
+ 
 def runge_kutta_explicit(fprime, x, **kwargs):
     '''
     fprime: new act generation methods, i.e. update_network function
@@ -55,6 +55,7 @@ def BCM_rule(weights_project, kwargs):
     tresholds=np.var(activity_all, axis=0) + np.mean(activity_all, axis=0)**2
     activity_presyn = activity_current*(activity_current-tresholds)
     weight_change=np.dot(activity_presyn[:,None], inputs[None,:])/(tresholds[:,None])
+    # return a N x N matrix, row is post-syn, col is pre-syn
     return timescale_learn*weight_change*kwargs['w_struct_mask']
 
 
@@ -79,6 +80,7 @@ def BCM_rule_sliding_th(weights_project, kwargs):
                                 timescale=1./(kwargs['tau_threshold']))
     activity_postsyn = activity_current*(activity_current-thresholds)
     weight_change=np.dot(activity_postsyn[:,None], inputs[None,:])/(thresholds[:,None])
+    # return a N x N matrix, row is post-syn, col is pre-syn
     return timescale_learn*weight_change*kwargs['w_struct_mask']
     
 
