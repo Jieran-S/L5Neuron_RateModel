@@ -10,7 +10,7 @@ import math
 import importlib
 
 import Implementation.network_model as nm
-from Implementation.helper import distributionInput_negative, generate_connectivity, calculate_selectivity, plot_activity
+from Implementation.helper import distributionInput_negative, generate_connectivity, calculate_selectivity, plot_activity, plot_weights
 if len(sys.argv) != 0:
     p = importlib.import_module(sys.argv[1])
 else:
@@ -42,12 +42,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     # input parameters (parameter for tuning)
     amplitude = [input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude]
     steady_input = [input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady]
-
-    # prepare different orientation inputs
-    degree = p.degree
-    radians = []
-    for i in degree:
-        radians.append(math.radians(i))
+    steady_input = [1,1,1,1]
 
     # Evaluation metrics
     nan_counter, not_eq_counter = 0, 0
@@ -57,7 +52,10 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         [], [], [], [], [], [], [], []
 
     ################## iterate through different initialisations ##################
+    activity_data = []
+    weights_data = []
     for sim in range(p.sim_number):
+        #print(sim)
         # weights and scale the weights 
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
@@ -69,53 +67,55 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         # initial activity
         initial_values = np.random.uniform(low=0, high=1, size=(sum(N),))
 
-        activity_data = []
         success = 0
         a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
         b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
 
         ################## iterate through different inputs ##################
         # Change the orientation value? taking g=1 or sth
-        for g in radians:
+        # for g in radians:
             # build network here
-            Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
-                                  integrator=p.integrator, delta_t=p.delta_t, tau=p.tau, Ttau=p.Ttau,
-                                  update_function=p.update_function, learning_rule=p.learning_rule,
-                                  gamma=p.gamma)
+        g = p.degree
+        Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
+                                integrator=p.integrator, delta_t=p.delta_t, tau=p.tau, Ttau=p.Ttau,
+                                update_function=p.update_function, learning_rule=p.learning_rule,
+                                gamma=p.gamma)
+        # define inputs
+        inputs = distributionInput_negative(a_data=a_data, b_data=b_data,
+                                    spatialF=spatialF, temporalF=temporalF, orientation=g,
+                                    spatialPhase=spatialPhase, amplitude=amplitude, T=Sn.tsteps,
+                                    steady_input=steady_input, N=N)
 
-            # define inputs
-            inputs = distributionInput_negative(a_data=a_data, b_data=b_data,
-                                       spatialF=spatialF, temporalF=temporalF, orientation=g,
-                                       spatialPhase=spatialPhase, amplitude=amplitude, T=Sn.tsteps,
-                                       steady_input=steady_input, N=N)
+        # run
+        activity, weights = Sn.run(inputs, initial_values)
+        activity = np.asarray(activity)
+        weights = np.asarray(weights)
+        # print('weight assay shape:', weights.shape)
+        # check nan
+        if np.isnan(activity[-1]).all():
+            nan_counter += 1
+            break
 
-            # run
-            activity, w = Sn.run(inputs, initial_values)
-            activity = np.asarray(activity)
-
-            # check nan
-            if np.isnan(activity[-1]).all():
-                nan_counter += 1
-                break
-
-            # check equilibrium
-            a1 = activity[-2000:-1000, :]
-            a2 = activity[-1000:, :]
-            mean1 = np.mean(a1, axis=0)
-            mean2 = np.mean(a2, axis=0)
-            check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
-            if check_eq > 0:
-                not_eq_counter += 1
-                break
-
-            if g == radians[-1]:
-                success = 1
-            activity_data.append(activity)
-        activity = np.array(activity_data)
-
-        plot_activity(activity, N, 'data/figures',sim)
+        # check equilibrium
+        a1 = activity[-2000:-1000, :]
+        a2 = activity[-1000:, :]
+        mean1 = np.mean(a1, axis=0)
+        mean2 = np.mean(a2, axis=0)
+        check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
+        if check_eq > 0:
+            not_eq_counter += 1
+            break
+        weights_data.append(weights)
+        activity_data.append(activity)
+    
+    activity = np.array(activity_data)
+    weights = np.array(weights_data)
+    # print('weight shape:', weights.shape)
+    # print('activity shape:', activity.shape)
+    plot_activity(activity, N, 'data/figures',sim, learningrule= p.learning_rule)
+    plot_weights(weights, N, 'data/figures', sim, learningrule= p.learning_rule)
       
-        '''
+'''
         # No need for the part simulating the changing in direction. Change it earlier also
         if success:
             # mean and std of activity
@@ -243,11 +243,13 @@ f.close()
 ############### start simulation ###############
 
 start_time = time.time()
-"""
+title = 'Trail run simulation'
+
 run_simulation(input_cs_steady=1,input_cc_steady=0,input_pv_steady=1,input_sst_steady=1,
                input_cs_amplitude=2,input_cc_amplitude=1,input_pv_amplitude=0.9,input_sst_amplitude=0.9,
-               spatialF=1,temporalF=1,spatialPhase=1,start_time=start_time,title=title)"""
+               spatialF=1,temporalF=1,spatialPhase=1,start_time=start_time,title=title, cc_cs_weight=p.cc_cs_weight[1])
 
+"""
 # use joblib to parallelize simulations with different parameter values
 
 Parallel(n_jobs=p.jobs_number)(delayed(run_simulation)(input_cs_steady, input_cc_steady, input_pv_steady,
@@ -266,3 +268,4 @@ Parallel(n_jobs=p.jobs_number)(delayed(run_simulation)(input_cs_steady, input_cc
                     for spatialF in p.spatialF
                     for temporalF in p.temporalF
                     for spatialPhase in p.spatialPhase)
+"""

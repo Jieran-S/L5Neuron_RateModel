@@ -1,3 +1,4 @@
+import enum
 import numpy as np
 np.random.seed(42)
 import math
@@ -7,7 +8,7 @@ import matplotlib.pyplot as plt
 # remove top and right axis from plots
 mpl.rcParams["axes.spines.right"] = False
 mpl.rcParams["axes.spines.top"] = False
-
+ 
 
 def distributionInput(a_data,b_data,spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
     """
@@ -49,7 +50,7 @@ def distributionInput(a_data,b_data,spatialF, temporalF, orientation, spatialPha
 def distributionInput_negative(a_data,b_data,spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
     """
     Generates a moving bar as input to CS, CC, PV, SST.
-
+    Return an array A of size [T(t-step), N(population)]
     """
 
     i = 0
@@ -80,18 +81,18 @@ def distributionInput_negative(a_data,b_data,spatialF, temporalF, orientation, s
 
     return (inputs)
 
-def create_synapses(N_pre, N_post, c, same_population=False):
+def create_synapses(N_pre, N_post, prob, same_population=False):
     """
     Create random connections between two groups or within one group.
     :param N_pre: number of neurons in pre group
     :param N_post: number of neurons in post group
-    :param c:   connectivity (probability for connecting, synaptic strength)
+    :param prob:   connectivity (probability for connecting, synaptic strength)
     :param same_population: whether to allow autapses (connection of neuron to itself if pre = post population)
     :return: 2xN_con array of connection indices (pre-post pairs)
     """
 
     # indegree: the expectation of how many pre neurons will form synapses with post neurons
-    indegree = int(np.round(c * N_pre))  # no variance of indegree = fixed indegree
+    indegree = int(np.round(prob * N_pre))  # no variance of indegree = fixed indegree
 
     i = np.array([], dtype=int)
     j = np.array([], dtype=int)
@@ -258,46 +259,87 @@ def calculate_selectivity(activity_popu):
 
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,os_paper_mean_data,os_paper_std_data)
 
-def plot_activity(activity, N, title,sim):
+def plot_activity(activity, N, title,sim, learningrule):
 
     '''
-    activity: 3d matrix with infomraiton on the strength of the synpase? 
+    activity: 3d matrix with infomraiton on the activation of different neurons
     '''
     if len(activity) == 0:
         return(0)
     # Extract the connectivity data for each cell population? 
-    
-    activity_cs = activity[:, :, :N[0]]
-    activity_cc = activity[:, :, sum(N[:1]):sum(N[:2])]
-    activity_pv = activity[:, :, sum(N[:2]):sum(N[:3])]
-    activity_sst = activity[:, :, sum(N[:3]):sum(N)]
+    activity = activity[sim]
+    activity_cs = activity[:, :N[0]]
+    activity_cc = activity[:, sum(N[:1]):sum(N[:2])]
+    activity_pv = activity[:, sum(N[:2]):sum(N[:3])]
+    activity_sst = activity[:, sum(N[:3]):sum(N)]
 
-    for g in range(activity_cs.shape[0]): # degrees
-        fig,axs = plt.subplots()
-        for i in range(activity_cs.shape[2]):
-            plt.plot(range(activity_cs.shape[1]),activity_cs[g,:,i],c='grey',alpha=0.5)
-        plt.title('CS')
-        title_save = title+ '/' + str(sim) + str(g)+ '_CS.png'
-        fig.savefig(title_save)
+    fig,axs = plt.subplots()
+    for i in range(activity_cs.shape[1]):
+        plt.plot(range(activity_cs.shape[0]),activity_cs[:,i],c='grey',alpha=0.5)
+    plt.title('CS')
+    title_save = f'{title}/{sim}_{learningrule}_CS_act.png'
+    fig.savefig(title_save)
 
+    fig, axs = plt.subplots()
+    for i in range(activity_cc.shape[1]):
+        plt.plot(range(activity_cc.shape[0]), activity_cc[:,i], c='grey', alpha=0.5)
+    plt.title('CC')
+    title_save =  f'{title}/{sim}_{learningrule}_CC_act.png'
+    fig.savefig(title_save)
+
+    fig, axs = plt.subplots()
+    for i in range(activity_pv.shape[1]):
+        plt.plot(range(activity_pv.shape[0]), activity_pv[:,i], c='grey', alpha=0.5)
+    plt.title('PV')
+    title_save =  f'{title}/{sim}_{learningrule}_PV_act.png'
+    fig.savefig(title_save)
+
+    fig, axs = plt.subplots()
+    for i in range(activity_sst.shape[1]):
+        plt.plot(range(activity_sst.shape[0]), activity_sst[:,i], c='grey', alpha=0.5)
+    plt.title('SST')
+    title_save = f'{title}/{sim}_{learningrule}_SST_act.png'
+    fig.savefig(title_save)
+
+
+def plot_weights(weights, N, title, sim, learningrule):
+
+    '''
+    weights: a 3D matrix (4D if all simulation taken into account): Tstep x N(post-syn) x N(pre-syn)
+    '''
+    weights = weights[sim]
+    weight_cs = weights[:, :N[0], :]
+    weight_cc = weights[:, sum(N[:1]):sum(N[:2]), :]
+    weight_pv = weights[:, sum(N[:2]):sum(N[:3]), :]
+    weight_sst = weights[:, sum(N[:3]):sum(N), :]
+    weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
+
+    for j,wei in enumerate(weights_vector):
         fig, axs = plt.subplots()
-        for i in range(activity_cc.shape[2]):
-            plt.plot(range(activity_cc.shape[1]), activity_cc[g,:,i], c='grey', alpha=0.5)
-        plt.title('CC')
-        title_save = title + '/' + str(sim) + str(g) + '_CC.png'
+        # return the average weight from one cell to a specific responses
+        w_to_cs = np.mean(wei[:, :, :N[0]], axis=-1)
+        w_to_cc = np.mean(wei[:, :, sum(N[:1]):sum(N[:2])], axis= -1 )
+        w_to_pv = np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis= -1 )
+        w_to_sst = np.mean(wei[:, :, sum(N[:3]):sum(N)], axis= -1 )
+        x_length = w_to_cc.shape[0]
+        # see full colortable: https://matplotlib.org/3.1.0/gallery/color/named_colors.html
+        color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
+        label_list = ['cc pre', 'cs pre', 'pv pre', 'sst pre']
+        # Different weight type
+        for ind,plotwei in enumerate([w_to_cc,w_to_cs, w_to_pv, w_to_sst]):
+            # Different cell numbers
+            # print(f'postsyn: {j}, presyn: {ind}, shape:{plotwei.shape}')
+            for i in range(plotwei.shape[1]):
+                axs.plot(range(x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
+        
+        name = ['CS', 'CC', 'PV','SST']
+        #Merge duplicated legends
+        handles, labels = axs.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        # Set legend position
+        box = axs.get_position()
+        axs.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        axs.legend(by_label.values(), by_label.keys(), loc='center left', bbox_to_anchor=(1, 0.5))
+        axs.set_title(f"postsyn:{name[j]}")
+        title_save =  f'{title}/{sim}_{learningrule}_{name[j]}_weight.png'
         fig.savefig(title_save)
-
-        fig, axs = plt.subplots()
-        for i in range(activity_pv.shape[2]):
-            plt.plot(range(activity_pv.shape[1]), activity_pv[g,:,i], c='grey', alpha=0.5)
-        plt.title('PV')
-        title_save = title + '/' + str(sim) + str(g) + '_PV.png'
-        fig.savefig(title_save)
-
-        fig, axs = plt.subplots()
-        for i in range(activity_sst.shape[2]):
-            plt.plot(range(activity_sst.shape[1]), activity_sst[g,:,i], c='grey', alpha=0.5)
-        plt.title('SST')
-        title_save = title + '/' + str(sim) + str(g) + '_SST.png'
-        fig.savefig(title_save)
-
