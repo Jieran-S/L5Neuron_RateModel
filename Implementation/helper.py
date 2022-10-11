@@ -272,33 +272,18 @@ def plot_activity(activity, N, title,sim, learningrule):
     activity_cc = activity[:, sum(N[:1]):sum(N[:2])]
     activity_pv = activity[:, sum(N[:2]):sum(N[:3])]
     activity_sst = activity[:, sum(N[:3]):sum(N)]
+    activity_vec = [activity_cs, activity_cc, activity_pv, activity_sst]
+    namelist = ['CS', 'CC', 'PV', 'SST']
 
-    fig,axs = plt.subplots()
-    for i in range(activity_cs.shape[1]):
-        plt.plot(range(activity_cs.shape[0]),activity_cs[:,i],c='grey',alpha=0.5)
-    plt.title('CS')
-    title_save = f'{title}/{sim}_{learningrule}_CS_act.png'
-    fig.savefig(title_save)
+    fig,axes = plt.subplots(2,2)
+    for ind, act in enumerate(activity_vec):
+        axs = axes.flatten()[ind]
+        for i in range(act.shape[1]):
+            axs.plot(range(act.shape[0]), act[:,i],c='grey',alpha=0.5)
+        axs.set_title(namelist[ind])
 
-    fig, axs = plt.subplots()
-    for i in range(activity_cc.shape[1]):
-        plt.plot(range(activity_cc.shape[0]), activity_cc[:,i], c='grey', alpha=0.5)
-    plt.title('CC')
-    title_save =  f'{title}/{sim}_{learningrule}_CC_act.png'
-    fig.savefig(title_save)
-
-    fig, axs = plt.subplots()
-    for i in range(activity_pv.shape[1]):
-        plt.plot(range(activity_pv.shape[0]), activity_pv[:,i], c='grey', alpha=0.5)
-    plt.title('PV')
-    title_save =  f'{title}/{sim}_{learningrule}_PV_act.png'
-    fig.savefig(title_save)
-
-    fig, axs = plt.subplots()
-    for i in range(activity_sst.shape[1]):
-        plt.plot(range(activity_sst.shape[0]), activity_sst[:,i], c='grey', alpha=0.5)
-    plt.title('SST')
-    title_save = f'{title}/{sim}_{learningrule}_SST_act.png'
+    fig.tight_layout(pad=2.0)
+    title_save = f'{title}/{learningrule}_act.png'
     fig.savefig(title_save)
 
 
@@ -314,8 +299,8 @@ def plot_weights(weights, N, title, sim, learningrule):
     weight_sst = weights[:, sum(N[:3]):sum(N), :]
     weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
 
+    fig, axes = plt.subplots(2,2)
     for j,wei in enumerate(weights_vector):
-        fig, axs = plt.subplots()
         # return the average weight from one cell to a specific responses
         w_to_cs = np.mean(wei[:, :, :N[0]], axis=-1)
         w_to_cc = np.mean(wei[:, :, sum(N[:1]):sum(N[:2])], axis= -1 )
@@ -324,22 +309,24 @@ def plot_weights(weights, N, title, sim, learningrule):
         x_length = w_to_cc.shape[0]
         # see full colortable: https://matplotlib.org/3.1.0/gallery/color/named_colors.html
         color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
-        label_list = ['cc pre', 'cs pre', 'pv pre', 'sst pre']
+        label_list = ['cs pre', 'cc pre', 'pv pre', 'sst pre']
+        # Specify the graph
+        axs = axes.flatten()[j]
         # Different weight type
-        for ind,plotwei in enumerate([w_to_cc,w_to_cs, w_to_pv, w_to_sst]):
+        for ind,plotwei in enumerate([w_to_cs,w_to_cc, w_to_pv, w_to_sst]):
             # Different cell numbers
-            # print(f'postsyn: {j}, presyn: {ind}, shape:{plotwei.shape}')
             for i in range(plotwei.shape[1]):
                 axs.plot(range(x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
         
         name = ['CS', 'CC', 'PV','SST']
-        #Merge duplicated legends
-        handles, labels = axs.get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-        # Set legend position
-        box = axs.get_position()
-        axs.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        axs.legend(by_label.values(), by_label.keys(), loc='center left', bbox_to_anchor=(1, 0.5))
         axs.set_title(f"postsyn:{name[j]}")
-        title_save =  f'{title}/{sim}_{learningrule}_{name[j]}_weight.png'
-        fig.savefig(title_save)
+    
+    # Set legend content and location
+    handles, labels = axs.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    fig.legend(by_label.values(), by_label.keys(),loc = 'lower center', ncol = 4, bbox_to_anchor=(0.5, 0))
+
+    #save graph
+    fig.tight_layout(pad=2.0)
+    title_save =  f'{title}/{learningrule}_weight.png'
+    fig.savefig(title_save)

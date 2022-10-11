@@ -20,7 +20,7 @@ np.random.seed(42)
 
 def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady,
     input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude,cc_cs_weight,
-    spatialF, temporalF, spatialPhase,start_time,title):
+    spatialF, temporalF, spatialPhase,start_time,title, learning_rule):
     """
     not_before = 0
     if not(input_cs_steady==0 and input_cc_steady==0 and input_pv_steady==0 and input_sst_steady==0):
@@ -78,7 +78,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         g = p.degree
         Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
                                 integrator=p.integrator, delta_t=p.delta_t, tau=p.tau, Ttau=p.Ttau,
-                                update_function=p.update_function, learning_rule=p.learning_rule,
+                                update_function=p.update_function, learning_rule=learning_rule,
                                 gamma=p.gamma)
         # define inputs
         inputs = distributionInput_negative(a_data=a_data, b_data=b_data,
@@ -112,8 +112,8 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     weights = np.array(weights_data)
     # print('weight shape:', weights.shape)
     # print('activity shape:', activity.shape)
-    plot_activity(activity, N, 'data/figures',sim, learningrule= p.learning_rule)
-    plot_weights(weights, N, 'data/figures', sim, learningrule= p.learning_rule)
+    plot_activity(activity, N, 'data/figures',sim, learningrule= learning_rule)
+    plot_weights(weights, N, 'data/figures', sim, learningrule= learning_rule)
       
 '''
         # No need for the part simulating the changing in direction. Change it earlier also
@@ -247,7 +247,8 @@ title = 'Trail run simulation'
 
 run_simulation(input_cs_steady=1,input_cc_steady=0,input_pv_steady=1,input_sst_steady=1,
                input_cs_amplitude=2,input_cc_amplitude=1,input_pv_amplitude=0.9,input_sst_amplitude=0.9,
-               spatialF=1,temporalF=1,spatialPhase=1,start_time=start_time,title=title, cc_cs_weight=p.cc_cs_weight[1])
+               spatialF=1,temporalF=1,spatialPhase=1,start_time=start_time,title=title, cc_cs_weight=p.cc_cs_weight[1], 
+               learning_rule=p.learning_rule)
 
 """
 # use joblib to parallelize simulations with different parameter values

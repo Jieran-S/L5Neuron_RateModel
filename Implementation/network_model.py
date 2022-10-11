@@ -67,6 +67,8 @@ class SimpleNetwork:
             self.learningrule = im.BCM_rule
         if self.learning_rule=='BCM_slide':
             self.learningrule = im.BCM_rule_sliding_th
+        if self.learning_rule=='Simple_test':
+            self.learning_rule = im.Simple_test_learn
             
     def _init_integrator(self):        
         if self.integrator == 'runge_kutta':
