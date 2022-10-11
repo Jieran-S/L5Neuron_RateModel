@@ -6,10 +6,11 @@ def forward_euler(fprime, x, **kwargs):
     fprime: new act generation methods, i.e. update_network function
     fprime: can also be learning rules when updating the W_rec matrix
     x: Current parameter
+    commonly use this one
     '''
     delta_t=kwargs['delta_t']
     return (x + delta_t*fprime(x, kwargs))
- 
+    
 def runge_kutta_explicit(fprime, x, **kwargs):
     '''
     fprime: new act generation methods, i.e. update_network function
