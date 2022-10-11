@@ -12,7 +12,7 @@ Ttau = 300
 
 ####### Network parameters #######
 learnlist = ['none','BCM','BCM_slide','Simple_test']
-learning_rule = learnlist[2]
+learning_rule = learnlist[1]
 
 # synaptic strength matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
 # Campognola 2022 PSP amplitude

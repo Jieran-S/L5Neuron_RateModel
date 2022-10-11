@@ -33,7 +33,7 @@ class SimpleNetwork:
         self.tau_learn=tau_learn
         self.tau_threshold=tau_threshold
         self.tsteps=int((Ttau*tau)/delta_t)
-        self.number_steps_before_learning = 1000
+        self.number_steps_before_learning = 2000
         self.number_timepoints_plasticity = int(-1*(self.tau_threshold/self.delta_t)*np.log(0.1))
         self.update_function=update_function
         self.learning_rule=learning_rule
