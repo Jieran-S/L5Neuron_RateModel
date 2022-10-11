@@ -46,6 +46,9 @@ def update_network(x, kwargs):
 def nonlearning_weights(x, kwargs):
     return np.zeros_like(x)
 
+def Simple_test_learn(x, kwargs):
+    return x*(1.01)
+
 def BCM_rule(weights_project, kwargs):
     timescale_learn=1./(kwargs['tau_learn'])
     activity_all=kwargs['prev_act']
@@ -56,6 +59,7 @@ def BCM_rule(weights_project, kwargs):
     activity_presyn = activity_current*(activity_current-tresholds)
     weight_change=np.dot(activity_presyn[:,None], inputs[None,:])/(tresholds[:,None])
     # return a N x N matrix, row is post-syn, col is pre-syn
+    # print(timescale_learn*weight_change*kwargs['w_struct_mask'])
     return timescale_learn*weight_change*kwargs['w_struct_mask']
 
 
