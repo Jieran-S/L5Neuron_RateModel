@@ -48,7 +48,14 @@ def nonlearning_weights(x, kwargs):
     return np.zeros_like(x)
 
 def Simple_test_learn(x, kwargs):
-    return x*(1.01)
+    '''
+    N = np.array([45, 275, 46, 34])
+    w_cs = x[:, :N[0]] * 1.01
+    w_cc = x[:, sum(N[:1]):sum(N[:2])] * 0.98
+    w_pv = x[:, sum(N[:2]):sum(N[:3])] * 1.05
+    w_sst = x[:, sum(N[:3]):sum(N)] * 0.95
+    '''
+    return x*1.04
 
 def BCM_rule(weights_project, kwargs):
     timescale_learn=1./(kwargs['tau_learn'])

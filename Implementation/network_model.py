@@ -18,7 +18,7 @@ class SimpleNetwork:
                 tau_threshold=1000,
                 Ttau=6,
                 update_function='version_normal',
-                learning_rule='none',
+                learning_rule = 'Simple_test',
                 gamma=1,
                 W_structure=None):
         self.W_rec =W_rec
@@ -33,7 +33,7 @@ class SimpleNetwork:
         self.tau_learn=tau_learn
         self.tau_threshold=tau_threshold
         self.tsteps=int((Ttau*tau)/delta_t)
-        self.number_steps_before_learning = 5000
+        self.number_steps_before_learning = 1000
         self.number_timepoints_plasticity = int(-1*(self.tau_threshold/self.delta_t)*np.log(0.1))
         self.update_function=update_function
         self.learning_rule=learning_rule
@@ -68,7 +68,7 @@ class SimpleNetwork:
         if self.learning_rule=='BCM_slide':
             self.learningrule = im.BCM_rule_sliding_th
         if self.learning_rule=='Simple_test':
-            self.learning_rule = im.Simple_test_learn
+            self.learningrule = im.Simple_test_learn
             
     def _init_integrator(self):        
         if self.integrator == 'runge_kutta':

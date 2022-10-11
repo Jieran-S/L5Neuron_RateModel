@@ -38,7 +38,6 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     w_initial[1,0] = cc_cs_weight
     w_noise = p.w_noise
 
-
     # input parameters (parameter for tuning)
     amplitude = [input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude]
     steady_input = [input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady]
@@ -94,6 +93,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         # check nan
         if np.isnan(activity[-1]).all():
             nan_counter += 1
+            print('nan exist')
             break
 
         # check equilibrium
@@ -104,7 +104,11 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
         if check_eq > 0:
             not_eq_counter += 1
-            break
+            print('not converge')
+            # break
+
+        # Sanity check
+        # print(f'weight shape: {weights.shape}, sim: {sim}')
         weights_data.append(weights)
         activity_data.append(activity)
     
