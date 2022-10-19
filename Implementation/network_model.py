@@ -1,4 +1,4 @@
-from os.path import abspath, sep, pardir
+from os.path import abspath, sep, pardir 
 import sys
 sys.path.append(abspath('') + sep + pardir + sep )
 import numpy as np
@@ -101,7 +101,8 @@ class SimpleNetwork:
         all_act=[]
         all_act.append(start_activity)
         all_weights=[]
-        all_weights.append(self.W_input)
+        # all_weights.append(self.W_input)
+        all_weights.append(self.W_rec)
         
         inputs_time = self._check_input(inputs)
         for step in range(Ntotal):
