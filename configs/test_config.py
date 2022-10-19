@@ -6,22 +6,31 @@ jobs_number = 4
 name_sim ='os_ds_'
 update_function = 'version_normal'
 integrator = 'forward_euler'
-delta_t = 0.01
+
+# Simulation Config
+delta_t = 0.02
+number_steps_before_learning = 250
+
+# Learning rule hyperparameter
 tau = 0.1
-Ttau = 300
+Ttau = 400
+tau_threshold = 1000
 
 ####### Network parameters #######
-learnlist = ['none','BCM','BCM_slide','Simple_test']
+learnlist = ['none','BCM','BCM_slide']      #'Simple_test'
 learning_rule = learnlist[1]
 
 # synaptic strength matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
 # Campognola 2022 PSP amplitude
+
+#random initial weight (test it out)
+
 w_initial = np.array([[0.27, 0, 1.01, 0.05],
                        [0.19, 0.24, 0.48, 0.09],
                        [-0.32, -0.52, -0.47, -0.44],
                        [-0.19, -0.11, -0.18, -0.19]])
 
-# Campognola 2022 PSP amplitude
+# Campognola 2022 PSP amplitude: https://www.science.org/doi/epdf/10.1126/science.abj5861 
 # connection probability matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
 prob = np.array([[0.16, 0, 0.18, 0.23],
                   [0.09, 0.06, 0.22, 0.26],

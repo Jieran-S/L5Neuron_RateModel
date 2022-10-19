@@ -1,6 +1,5 @@
 import enum
 import numpy as np
-np.random.seed(42)
 import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -9,6 +8,7 @@ import matplotlib.pyplot as plt
 mpl.rcParams["axes.spines.right"] = False
 mpl.rcParams["axes.spines.top"] = False
  
+np.random.seed(42)
 
 def distributionInput(a_data,b_data,spatialF, temporalF, orientation, spatialPhase, amplitude, T, steady_input, N):
     """
@@ -127,7 +127,6 @@ def normal_distr_weights(weight, w_noise):
     elif weight < 0:
         weight = -np.abs(np.random.normal(weight, w_noise))
     return (weight)
-
 
 def generate_connectivity(N, p, w_initial, w_noise):
     """
@@ -259,7 +258,7 @@ def calculate_selectivity(activity_popu):
 
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,os_paper_mean_data,os_paper_std_data)
 
-def plot_activity(activity, N, title,sim, learningrule):
+def plot_activity(activity, N, title,sim, learningrule, Ttau):
 
     '''
     activity: 3d matrix with infomraiton on the activation of different neurons
@@ -279,15 +278,14 @@ def plot_activity(activity, N, title,sim, learningrule):
     for ind, act in enumerate(activity_vec):
         axs = axes.flatten()[ind]
         for i in range(act.shape[1]):
-            axs.plot(range(act.shape[0]), act[:,i],c='grey',alpha=0.5)
+            axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.5)
         axs.set_title(namelist[ind])
 
     fig.tight_layout(pad=2.0)
     title_save = f'{title}/{learningrule}_act.png'
     fig.savefig(title_save)
 
-
-def plot_weights(weights, N, title, sim, learningrule):
+def plot_weights(weights, N, title, sim, learningrule, Ttau):
 
     '''
     weights: a 3D matrix (4D if all simulation taken into account): Tstep x N(post-syn) x N(pre-syn)
@@ -316,7 +314,7 @@ def plot_weights(weights, N, title, sim, learningrule):
         for ind,plotwei in enumerate([w_to_cs,w_to_cc, w_to_pv, w_to_sst]):
             # Different cell numbers
             for i in range(plotwei.shape[1]):
-                axs.plot(range(x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
+                axs.plot(np.linspace(0, Ttau, x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
         
         name = ['CS', 'CC', 'PV','SST']
         axs.set_title(f"postsyn:{name[j]}")
