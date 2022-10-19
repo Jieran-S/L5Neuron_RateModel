@@ -12,7 +12,8 @@ class SimpleNetwork:
                 W_project,
                 nonlinearity_rule,
                 integrator='forward_euler',
-                delta_t=0.01, 
+                delta_t=0.015, 
+                number_steps_before_learning = 250,
                 tau=5.,
                 tau_learn=1000,
                 tau_threshold=1000,
@@ -29,11 +30,15 @@ class SimpleNetwork:
             # N x N matrix (postsynaptic neuron no. x total neuron?)
             self.W_structure=np.ones((W_rec.shape[0], W_project.shape[-1]))
         self.delta_t = delta_t
+        
+        # Changing the rate of activity and learning update (threshold update: tau_threshold)
         self.tau=tau
         self.tau_learn=tau_learn
         self.tau_threshold=tau_threshold
+
+        # Tuning: Plotting and simulation parameter. Controlling tsteps = 2000 and learning_step = 250
         self.tsteps=int((Ttau*tau)/delta_t)
-        self.number_steps_before_learning = 2000
+        self.number_steps_before_learning = number_steps_before_learning
         self.number_timepoints_plasticity = int(-1*(self.tau_threshold/self.delta_t)*np.log(0.1))
         self.update_function=update_function
         self.learning_rule=learning_rule
