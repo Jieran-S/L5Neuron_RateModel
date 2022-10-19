@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # remove top and right axis from plots
 mpl.rcParams["axes.spines.right"] = False
-mpl.rcParams["axes.spines.top"] = False
+mpl.rcParams["axes.spines.top"] = False 
  
 np.random.seed(42)
 
@@ -328,3 +328,11 @@ def plot_weights(weights, N, title, sim, learningrule, Ttau):
     fig.tight_layout(pad=2.0)
     title_save =  f'{title}/{learningrule}_weight.png'
     fig.savefig(title_save)
+
+def weight_eva(weights, ):
+    '''
+    weight: 4D matrix (sim, Tstep, N(post-syn), N(pre-syn))
+
+    Return time-series average variance for individual weights
+    Return neuron-wide variance for all different neurons
+    '''
