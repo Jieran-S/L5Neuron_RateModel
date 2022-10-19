@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import integrate
+from scipy import integrate 
 
 def forward_euler(fprime, x, **kwargs):
     '''

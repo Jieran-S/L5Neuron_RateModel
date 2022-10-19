@@ -7,13 +7,13 @@ name_sim ='os_ds_'
 update_function = 'version_normal'
 integrator = 'forward_euler'
 
-# Simulation Config
+# Simulation Config 
 delta_t = 0.02
 number_steps_before_learning = 250
 
 # Learning rule hyperparameter
 tau = 0.1
-Ttau = 400
+Ttau = 600
 tau_threshold = 1000
 
 ####### Network parameters #######

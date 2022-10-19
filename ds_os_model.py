@@ -54,16 +54,16 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     weights_data = []
     for sim in range(p.sim_number):
         #print(sim)
-        # weights and scale the weights 
+        # Generating an synaptic matrix that returns the synaptic connections
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
 
-        # eye matrix
+        # randomized weight beginning input
         num_neurons = W_rec.shape[0]
         W_project_initial = np.eye(num_neurons)
 
         # initial activity
-        initial_values = np.random.uniform(low=0, high=1, size=(sum(N),))
+        initial_values = np.random.uniform(low=0, high=1, size=(sum(N),)) 
 
         success = 0
         a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
@@ -121,7 +121,8 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     # print('activity shape:', activity.shape)
     plot_activity(activity, N, 'data/figures',sim, learningrule= learning_rule, Ttau = Ttau)
     plot_weights(weights, N, 'data/figures', sim, learningrule= learning_rule, Ttau= Ttau)
-      
+    
+    # Insert the evaluation metric here: return only evaluation meta data
 '''
         # No need for the part simulating the changing in direction. Change it earlier also
         if success:
