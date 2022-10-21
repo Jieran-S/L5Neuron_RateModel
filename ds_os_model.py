@@ -93,8 +93,10 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
         # check nan
         if np.isnan(activity[-1]).all():
             nan_counter += 1
-            print('nan exist')
-            break
+            print('nan exist: ', np.count_nonzero(~np.isnan(activity[-1])))
+            # assign the value such that it is plotable
+            activity[-1][np.isnan(activity[-1])] = 1 
+            # break
 
         # check equilibrium
         a1 = activity[-2000:-1000, :]
