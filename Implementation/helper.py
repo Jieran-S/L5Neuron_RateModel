@@ -329,10 +329,34 @@ def plot_weights(weights, N, title, sim, learningrule, Ttau):
     title_save =  f'{title}/{learningrule}_weight.png'
     fig.savefig(title_save)
 
-def weight_eva(weights, ):
+def weight_eva(weights, N):
     '''
     weight: 4D matrix (sim, Tstep, N(post-syn), N(pre-syn))
 
     Return time-series average variance for individual weights
     Return neuron-wide variance for all different neurons
     '''
+    Time_Var = list()
+    Neuron_Var = np.empty_like(weights.shape[0],)
+    Sim_Mat = list()
+
+    for sim in range(weights.shape[0]):
+        weights_vec = weights[sim]
+        # weights for different post-syn
+        weight_cs = weights_vec[:, :N[0], :]
+        weight_cc = weights_vec[:, sum(N[:1]):sum(N[:2]), :]
+        weight_pv = weights_vec[:, sum(N[:2]):sum(N[:3]), :]
+        weight_sst = weights_vec[:, sum(N[:3]):sum(N), :]
+        weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst] 
+
+        for j, wei in enumerate(weights_vector):
+            # Time-series variance: Take last 1000 variance do column-wise variance calculation
+            time_var_each = np.var(wei[-100:, :, :], axis= -1)
+
+            # neuron-wise variance: Only take the last value and variance across different neurons
+            neuron_var_each = np.empty_like(4,)
+            neuron_var_each[0] = np.var(wei[-1, :, :N[0]], axis=-1)
+            neuron_var_each[1] = np.var(wei[-1, :, sum(N[:1]):sum(N[:2])], axis= -1 )
+            neuron_var_each[2] = np.var(wei[-1, :, sum(N[:2]):sum(N[:3])], axis= -1 )
+            neuron_var_each[3] = np.var(wei[-1, :, sum(N[:3]):sum(N)], axis= -1 )
+

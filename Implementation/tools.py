@@ -2,7 +2,8 @@ import numpy as np
 
 def supralinear(gamma):
     if gamma == 1:
-        return lambda x: np.clip(x , 0, 1)
+        # uplift the clipping threshold into ReLu
+        return lambda x: np.clip(x , 0, 500)
     else:
         return lambda x: np.concatenate([np.clip(x[:8],0,np.inf),np.clip(x[8:],0,np.inf)**gamma])
 

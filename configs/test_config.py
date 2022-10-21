@@ -1,4 +1,5 @@
 import numpy as np
+np.random.seed(42)
 
 ####### simulation parameters #######
 sim_number = 10
@@ -18,17 +19,17 @@ tau_threshold = 1000
 
 ####### Network parameters #######
 learnlist = ['none','BCM','BCM_slide']      #'Simple_test'
-learning_rule = learnlist[1]
+learning_rule = learnlist[2]
 
 # synaptic strength matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
 # Campognola 2022 PSP amplitude
-
-#random initial weight (test it out)
-
 w_initial = np.array([[0.27, 0, 1.01, 0.05],
                        [0.19, 0.24, 0.48, 0.09],
                        [-0.32, -0.52, -0.47, -0.44],
                        [-0.19, -0.11, -0.18, -0.19]])
+
+# Change the weight into random input
+# w_initial = np.random.rand(4,4)
 
 # Campognola 2022 PSP amplitude: https://www.science.org/doi/epdf/10.1126/science.abj5861 
 # connection probability matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
@@ -39,6 +40,7 @@ prob = np.array([[0.16, 0, 0.18, 0.23],
 
 # number of CS, CC, PV and SST neurons
 N = np.array([45, 275, 46, 34])
+
 
 w_noise = 0.03 # synaptic weight noise
 
