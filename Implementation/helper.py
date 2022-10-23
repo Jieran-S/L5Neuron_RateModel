@@ -3,6 +3,8 @@ import numpy as np
 import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from datetime import datetime
+import csv
 
 # remove top and right axis from plots
 mpl.rcParams["axes.spines.right"] = False
@@ -326,7 +328,7 @@ def plot_weights(weights, N, title, sim, learningrule, Ttau):
 
     #save graph
     fig.tight_layout(pad=2.0)
-    title_save =  f'{title}/{learningrule}_weight.png'
+    title_save =  f'{title}/{learningrule}_{sim}_weight.png'
     fig.savefig(title_save)
 
 def weight_eva(weights, N):
@@ -335,10 +337,11 @@ def weight_eva(weights, N):
 
     Return time-series average variance for individual weights
     Return neuron-wide variance for all different neurons
+    Return mean value for the final product
     '''
-    Time_Var = list()
-    Neuron_Var = np.empty_like(weights.shape[0],)
-    Sim_Mat = list()
+    Tvar = np.empty([weights.shape[0], 4, 4])
+    Svar = np.empty([weights.shape[0], 4, 4])
+    Smean = np.empty([weights.shape[0], 4, 4])
 
     for sim in range(weights.shape[0]):
         weights_vec = weights[sim]
@@ -348,15 +351,41 @@ def weight_eva(weights, N):
         weight_pv = weights_vec[:, sum(N[:2]):sum(N[:3]), :]
         weight_sst = weights_vec[:, sum(N[:3]):sum(N), :]
         weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst] 
-
+        
+        # row-based post-syn situation
         for j, wei in enumerate(weights_vector):
-            # Time-series variance: Take last 1000 variance do column-wise variance calculation
-            time_var_each = np.var(wei[-100:, :, :], axis= -1)
 
-            # neuron-wise variance: Only take the last value and variance across different neurons
-            neuron_var_each = np.empty_like(4,)
-            neuron_var_each[0] = np.var(wei[-1, :, :N[0]], axis=-1)
-            neuron_var_each[1] = np.var(wei[-1, :, sum(N[:1]):sum(N[:2])], axis= -1 )
-            neuron_var_each[2] = np.var(wei[-1, :, sum(N[:2]):sum(N[:3])], axis= -1 )
-            neuron_var_each[3] = np.var(wei[-1, :, sum(N[:3]):sum(N)], axis= -1 )
+            # Time-series variance: time-based variance for the last 200 steps
+            mat_tvar = np.var(wei[-200:, :, :], axis= 0)
+            # Taking the average of all same value (Post-pre same condition)
+            tvar_list = np.empty([4,])
+            tvar_list[0] = np.mean(mat_tvar[:, :N[0]])
+            tvar_list[1] = np.mean(mat_tvar[:, sum(N[:1]):sum(N[:2])])
+            tvar_list[2] = np.mean(mat_tvar[:, sum(N[:2]):sum(N[:3])])
+            tvar_list[3] = np.mean(mat_tvar[:, sum(N[:3]):sum(N)])
+            Tvar[sim, j, : ] = tvar_list
 
+            # Taking the average of the last 10 value to denoise
+            wei = np.mean(wei[-10:, :, :], axis=0)
+
+            # neuron-wise variance (Same condition directly calculate variance)
+            svar_list = np.empty([4,])
+            svar_list[0] = np.var(wei[:, :N[0]])
+            svar_list[1] = np.var(wei[:, sum(N[:1]):sum(N[:2])])
+            svar_list[2] = np.var(wei[:, sum(N[:2]):sum(N[:3])])
+            svar_list[3] = np.var(wei[:, sum(N[:3]):sum(N)])
+            Svar[sim, j, : ] = svar_list
+
+            # mean value for expression
+            smean_list = np.empty([4,])
+            smean_list[0] = np.mean(wei[:, :N[0]])
+            smean_list[1] = np.mean(wei[:, sum(N[:1]):sum(N[:2])])
+            smean_list[2] = np.mean(wei[:, sum(N[:2]):sum(N[:3])])
+            smean_list[3] = np.mean(wei[:, sum(N[:3]):sum(N)])
+            Smean[sim, j, : ] = smean_list
+
+    # Average over all simulations
+    return (Tvar, Svar, Smean)
+
+
+    
