@@ -66,11 +66,11 @@ class SimpleNetwork:
             self.update_act = im.update_network
             
     def _init_learningrule(self):
-        if self.learning_rule=='none':
+        if self.learning_rule=='None':
             self.learningrule = im.nonlearning_weights  
         if self.learning_rule=='BCM':
             self.learningrule = im.BCM_rule
-        if self.learning_rule=='BCM_slide':
+        if self.learning_rule=='Slide_BCM':
             self.learningrule = im.BCM_rule_sliding_th
         if self.learning_rule=='Simple_test':
             self.learningrule = im.Simple_test_learn

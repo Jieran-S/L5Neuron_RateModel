@@ -2,15 +2,18 @@ from os.path import abspath
 import sys
 sys.path.append(abspath(''))
 import numpy as np
+import pandas as pd
 from datetime import datetime
 import csv
 from joblib import Parallel, delayed
 import time
 import math
 import importlib
+from pathlib import Path  
 
 import Implementation.network_model as nm
-from Implementation.helper import distributionInput_negative, generate_connectivity, calculate_selectivity, plot_activity, plot_weights
+import Implementation.helper as helper
+from Implementation.helper import distributionInput_negative, generate_connectivity, calculate_selectivity
 if len(sys.argv) != 0:
     p = importlib.import_module(sys.argv[1])
 else:
@@ -19,7 +22,7 @@ else:
 np.random.seed(42)
 
 def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady,
-    input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude,cc_cs_weight,
+    input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude,
     spatialF, temporalF, spatialPhase,start_time,title, learning_rule, number_steps_before_learning, Ttau):
     """
     not_before = 0
@@ -35,7 +38,7 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     N = p.N
     prob = p.prob
     w_initial = p.w_initial
-    w_initial[1,0] = cc_cs_weight
+    # w_initial[1,0] = cc_cs_weight
     w_noise = p.w_noise
 
     # input parameters (parameter for tuning)
@@ -54,6 +57,8 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     weights_data = []
     for sim in range(p.sim_number):
         #print(sim)
+
+        w_initial = np.concatenate([np.random.rand(4,2), -np.random.rand(4,2)], axis=1)
         # Generating an synaptic matrix that returns the synaptic connections
         W_rec = generate_connectivity(N, prob, w_initial, w_noise)
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
@@ -119,12 +124,35 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
     
     activity = np.array(activity_data)
     weights = np.array(weights_data)
-    # print('weight shape:', weights.shape)
-    # print('activity shape:', activity.shape)
-    plot_activity(activity, N, 'data/figures',sim, learningrule= learning_rule, Ttau = Ttau)
-    plot_weights(weights, N, 'data/figures', sim, learningrule= learning_rule, Ttau= Ttau)
-    
+
+    # plot randomly 2 simulation graph
+    for isim in np.random.choice(np.arange(sim), 2):
+        helper.plot_activity(activity, N, 'data/figures',sim = isim, learningrule= learning_rule, Ttau = Ttau)
+        helper.plot_weights(weights, N, 'data/figures', sim = isim, learningrule= learning_rule, Ttau= Ttau)
+ 
     # Insert the evaluation metric here: return only evaluation meta data
+    (Tvar, Svar, Smean) = helper.weight_eva(weights=weights, N=N)
+
+    now = datetime.now() # current date and time
+    time_id = now.strftime("%m:%d:%Y_%H:%M")
+    title = f'data/{p.name_sim}_{time_id}_{p.learning_rule}.csv'
+
+    mat_header = ['CS-CS', 'CS-CC', 'CS-PV', 'CS-SST',
+                  'CC-CS', 'CC-CC', 'CC-PV', 'CC-SST',
+                  'PV-CS', 'PV-CC', 'PV-PV', 'PV-SST',
+                  'SST-CS', 'SST-CC', 'SST-PV', 'SST-SST']
+    csv_mat = np.concatenate([Tvar, Svar, Smean], axis=0).reshape(Tvar.shape[0]*3, -1)
+    list1 = ['Tvar_' + x for x in np.char.mod('%d', np.arange(sim+1))]
+    list2 = ['Svar_' + x for x in np.char.mod('%d', np.arange(sim+1))]
+    list3 = ['Smean_' + x for x in np.char.mod('%d', np.arange(sim+1))]
+    indlist = np.concatenate([list1, list2, list3])
+    
+    filepath = Path(title)  
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+
+    csv_df = pd.DataFrame(csv_mat, columns=mat_header, index = indlist)
+    csv_df.to_csv(filepath,  float_format='%.3f')
+
 '''
         # No need for the part simulating the changing in direction. Change it earlier also
         if success:
@@ -257,7 +285,7 @@ title = 'Trail run simulation'
 
 run_simulation(input_cs_steady=1,input_cc_steady=0,input_pv_steady=1,input_sst_steady=1,
                input_cs_amplitude=2,input_cc_amplitude=1,input_pv_amplitude=0.9,input_sst_amplitude=0.9,
-               spatialF=1,temporalF=1,spatialPhase=1,start_time=start_time,title=title, cc_cs_weight=p.cc_cs_weight[1],
+               spatialF=1,temporalF=1,spatialPhase=1,start_time=start_time,title=title,
                learning_rule= p.learning_rule, number_steps_before_learning =p.number_steps_before_learning, Ttau =p.Ttau)
 
 """
