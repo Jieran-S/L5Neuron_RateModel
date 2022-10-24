@@ -38,6 +38,8 @@ def update_network(x, kwargs):
     #           resulting in the current input stage
     # 2nd term: time step input, only return the input value from the time step?? There's no 2nd input 
     # from the system??
+
+    # W-rec should be changed and w_input should be steady
     update= -x + nonlinearity(np.dot(kwargs['w_rec'], x) + np.dot(kwargs['w_input'], kwargs['Input']))
     
     # linearized change amount
