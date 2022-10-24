@@ -110,7 +110,7 @@ class SimpleNetwork:
             new_act=self.integrator_function(self.update_act,  #intergation method
                               all_act[-1],  #general parameters     
                               delta_t=self.delta_t,
-                              tau=self.tau, w_rec=self.W_rec , w_input=all_weights[-1], #kwargs
+                              tau=self.tau, w_rec= all_weights[-1] , w_input=self.W_input, #kwargs the input should be the same while keeping
                               Input=inputs_time[step],            
                               nonlinearity=self.np_nonlinearity, )
             all_act.append(new_act) # append new activity to use for learning

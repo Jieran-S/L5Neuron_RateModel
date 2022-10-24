@@ -55,6 +55,8 @@ gamma = 1
 ####### Input #######
 degree = 0 
 
+# range of the input is unlimited (Change in the scope) 
+# Input from another a neuron to another neuron 
 input_cs_steady = [0]
 input_cc_steady = [0]
 input_pv_steady = [1]

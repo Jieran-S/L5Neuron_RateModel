@@ -284,7 +284,7 @@ def plot_activity(activity, N, title,sim, learningrule, Ttau):
         axs.set_title(namelist[ind])
 
     fig.tight_layout(pad=2.0)
-    title_save = f'{title}/{learningrule}_act.png'
+    title_save = f'{title}/{learningrule}_{sim}_act.png'
     fig.savefig(title_save)
 
 def plot_weights(weights, N, title, sim, learningrule, Ttau):
@@ -385,7 +385,25 @@ def weight_eva(weights, N):
             Smean[sim, j, : ] = smean_list
 
     # Average over all simulations
-    return (Tvar, Svar, Smean)
+    return (Tvar, Svar, Svar, Smean)
 
+def lossfun(Smean, Tvar, Svar, w_initial, sim):
+    '''
+    Returning the RMSE of the eventual results. The evaluation metric consists of the 
+    mean euclidean distance between the final value and the designated target, plus the 
+    variance value in terms of both time and among nuerons
+    '''
+    
+    # average time variance over simulation and taking sum
+    # Maybe don't need the variance to check the equilibrium 
+    Tvar_sum = np.sum(np.mean(Tvar, axis = 0))
+    # Svar_sum = np.sum(np.mean(Svar, axis = 0))
+    
+    # mean euclidean distance 
+    Smean_flat = Smean.reshape(sim+1,)
+    w_initial_flat = w_initial.reshape(1,)
 
+    rmse = np.sqrt(np.mean(np.square(Smean_flat - w_initial_flat)))
+
+    return rmse + Tvar_sum # + Svar_sum
     
