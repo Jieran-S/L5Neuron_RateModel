@@ -13,8 +13,11 @@ delta_t = 0.02
 number_steps_before_learning = 500
 
 # Learning rule hyperparameter
+# tau: BCM and activity update time scale 
+# Ttau: Total time simulation 
+# tau_threshold: Total time for 
 tau = 0.1
-Ttau = 600
+Ttau = 2000
 tau_threshold = 1000
 
 ####### Network parameters #######
@@ -61,13 +64,13 @@ input_cs_steady = [0]
 input_cc_steady = [0]
 input_pv_steady = [1]
 input_sst_steady = [1]
-input_cs_amplitude = [1]
-input_cc_amplitude = [1]
-input_pv_amplitude = [1]
-input_sst_amplitude = [1]
-spatialF = [1]
-temporalF = [1]
-spatialPhase = [1]
+input_cs_amplitude = 1
+input_cc_amplitude = 1
+input_pv_amplitude = 2
+input_sst_amplitude = 2
+spatialF = 1
+temporalF = 1
+spatialPhase = 1
 
 
 # cc_cs_weight = [0.19,0,0.0625,0.125,0.25,0.5,1] #np.arange(0,1,0.02)
