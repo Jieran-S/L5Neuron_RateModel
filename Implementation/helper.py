@@ -284,7 +284,9 @@ def plot_activity(activity, N, title,sim, learningrule, Ttau):
         axs.set_title(namelist[ind])
 
     fig.tight_layout(pad=2.0)
-    title_save = f'{title}/{learningrule}_{sim}_act.png'
+
+    time_id = datetime.now().strftime("%m%d_%H:%M")
+    title_save = f'{title}/{learningrule}_{sim}_{time_id}_act.png'
     fig.savefig(title_save)
 
 def plot_weights(weights, N, title, sim, learningrule, Ttau):
@@ -328,7 +330,9 @@ def plot_weights(weights, N, title, sim, learningrule, Ttau):
 
     #save graph
     fig.tight_layout(pad=2.0)
-    title_save =  f'{title}/{learningrule}_{sim}_weight.png'
+
+    time_id = datetime.now().strftime("%m%d_%H:%M")
+    title_save =  f'{title}/{learningrule}_{sim}_{time_id}_weight.png'
     fig.savefig(title_save)
 
 def weight_eva(weights, N):
@@ -355,8 +359,8 @@ def weight_eva(weights, N):
         # row-based post-syn situation
         for j, wei in enumerate(weights_vector):
 
-            # Time-series variance: time-based variance for the last 200 steps
-            mat_tvar = np.var(wei[-200:, :, :], axis= 0)
+            # Time-series variance: time-based variance for the last 400 steps
+            mat_tvar = np.var(wei[-400:, :, :], axis= 0)
             # Taking the average of all same value (Post-pre same condition)
             tvar_list = np.empty([4,])
             tvar_list[0] = np.mean(mat_tvar[:, :N[0]])
@@ -385,7 +389,7 @@ def weight_eva(weights, N):
             Smean[sim, j, : ] = smean_list
 
     # Average over all simulations
-    return (Tvar, Svar, Svar, Smean)
+    return (Tvar, Svar, Smean)
 
 def lossfun(Smean, Tvar, Svar, w_initial, sim):
     '''
