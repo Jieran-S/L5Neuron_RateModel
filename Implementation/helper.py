@@ -335,17 +335,18 @@ def plot_weights(weights, N, title, sim, learningrule, Ttau):
     title_save =  f'{title}/{learningrule}_{sim}_{time_id}_weight.png'
     fig.savefig(title_save)
 
-def weight_eva(weights, N):
+def sim_eva(weights, activity, N):
     '''
     weight: 4D matrix (sim, Tstep, N(post-syn), N(pre-syn))
+    activity: 3D matrix (sim, Tstep, N)
 
-    Return time-series average variance for individual weights
-    Return neuron-wide variance for all different neurons
-    Return mean value for the final product
+    Tvar: time-series average variance for individual weights
+    Svar: neuron-wide weight variance for all different neurons
+    Smean: mean value for weight the final product
+    Avar: Variance of activity across neuron
     '''
-    Tvar = np.empty([weights.shape[0], 4, 4])
-    Svar = np.empty([weights.shape[0], 4, 4])
-    Smean = np.empty([weights.shape[0], 4, 4])
+    Tvar = Svar = Smean = np.empty([weights.shape[0], 4, 4])
+    Avar = np.empty([activity.shape[0],4])
 
     for sim in range(weights.shape[0]):
         weights_vec = weights[sim]
@@ -354,60 +355,71 @@ def weight_eva(weights, N):
         weight_cc = weights_vec[:, sum(N[:1]):sum(N[:2]), :]
         weight_pv = weights_vec[:, sum(N[:2]):sum(N[:3]), :]
         weight_sst = weights_vec[:, sum(N[:3]):sum(N), :]
-        weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst] 
-        
+        weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
+
+        #Activity variance
+        Act_vec = np.mean(activity[sim, -20:, :], axis = 0)
+        Avar[sim, :] = [np.var(Act_vec[:N[0]]), 
+                        np.var(Act_vec[sum(N[:1]):sum(N[:2])]),
+                        np.var(Act_vec[sum(N[:2]):sum(N[:3])]),
+                        np.var(Act_vec[sum(N[:3]):sum(N)]) ]
+
         # row-based post-syn situation
         for j, wei in enumerate(weights_vector):
 
             # Time-series variance: time-based variance for the last 400 steps
             mat_tvar = np.var(wei[-400:, :, :], axis= 0)
             # Taking the average of all same value (Post-pre same condition)
-            tvar_list = np.empty([4,])
-            tvar_list[0] = np.mean(mat_tvar[:, :N[0]])
-            tvar_list[1] = np.mean(mat_tvar[:, sum(N[:1]):sum(N[:2])])
-            tvar_list[2] = np.mean(mat_tvar[:, sum(N[:2]):sum(N[:3])])
-            tvar_list[3] = np.mean(mat_tvar[:, sum(N[:3]):sum(N)])
-            Tvar[sim, j, : ] = tvar_list
+            Tvar[sim, j, : ] = [np.mean(mat_tvar[:, :N[0]]),
+                            np.mean(mat_tvar[:, sum(N[:1]):sum(N[:2])]),
+                            np.mean(mat_tvar[:, sum(N[:2]):sum(N[:3])]),
+                            np.mean(mat_tvar[:, sum(N[:3]):sum(N)])]
 
             # Taking the average of the last 10 value to denoise
             wei = np.mean(wei[-10:, :, :], axis=0)
 
             # neuron-wise variance (Same condition directly calculate variance)
-            svar_list = np.empty([4,])
-            svar_list[0] = np.var(wei[:, :N[0]])
-            svar_list[1] = np.var(wei[:, sum(N[:1]):sum(N[:2])])
-            svar_list[2] = np.var(wei[:, sum(N[:2]):sum(N[:3])])
-            svar_list[3] = np.var(wei[:, sum(N[:3]):sum(N)])
-            Svar[sim, j, : ] = svar_list
+            Svar[sim, j, : ] = [np.var(wei[:, :N[0]]),
+                            np.var(wei[:, sum(N[:1]):sum(N[:2])]),
+                            np.var(wei[:, sum(N[:2]):sum(N[:3])]),
+                            np.var(wei[:, sum(N[:3]):sum(N)]) ]
 
             # mean value for expression
-            smean_list = np.empty([4,])
-            smean_list[0] = np.mean(wei[:, :N[0]])
-            smean_list[1] = np.mean(wei[:, sum(N[:1]):sum(N[:2])])
-            smean_list[2] = np.mean(wei[:, sum(N[:2]):sum(N[:3])])
-            smean_list[3] = np.mean(wei[:, sum(N[:3]):sum(N)])
-            Smean[sim, j, : ] = smean_list
+            Smean[sim, j, : ] = [np.mean(wei[:, :N[0]]),
+                            np.mean(wei[:, sum(N[:1]):sum(N[:2])]),
+                            np.mean(wei[:, sum(N[:2]):sum(N[:3])]),
+                            np.mean(wei[:, sum(N[:3]):sum(N)]) ]
 
     # Average over all simulations
-    return (Tvar, Svar, Smean)
+    return (Tvar, Svar, Smean, Avar)
 
-def lossfun(Smean, Tvar, Svar, w_initial, sim):
+def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
     '''
+    Smean, Tvar, Svar, Avar: results from evaluation metic
+    Activity: Activity matrix to calcualte the out-of-range distribution (with panelty)
+    w_initial: designated final outcome 
+    sim: no. of simulation
+
     Returning the RMSE of the eventual results. The evaluation metric consists of the 
     mean euclidean distance between the final value and the designated target, plus the 
     variance value in terms of both time and among nuerons
     '''
     
     # average time variance over simulation and taking sum
-    # Maybe don't need the variance to check the equilibrium 
-    Tvar_sum = np.sum(np.mean(Tvar, axis = 0))
     # Svar_sum = np.sum(np.mean(Svar, axis = 0))
-    
+    Tvar_sum = np.sum(np.mean(Tvar, axis = 0))
+    Avar_mean = np.mean(Avar) # Just take the average activity across differen type is enough
+    Reg_factor = 0.1
+
+    # Taking the root mean square log error(RMSLE) panelty for out-of-range activity
+    Activity = abs(np.mean(Activity[:, -20:, :], axis = 1).flatten() - 0.5*MaxAct)
+    Aor = np.log1p(Activity) - np.log1p(0.5*MaxAct)
+    Aor_rmsle = np.sqrt(np.mean(np.square(Aor[Aor > 0])))
+
     # mean euclidean distance 
-    Smean_flat = Smean.reshape(sim+1,)
-    w_initial_flat = w_initial.reshape(1,)
-
-    rmse = np.sqrt(np.mean(np.square(Smean_flat - w_initial_flat)))
-
-    return rmse + Tvar_sum # + Svar_sum
+    Smean_flat = Smean.reshape(Smean.shape[0],)
+    w_target_flat = w_target.reshape(1,)
+    rmse = np.sqrt(np.mean(np.square(Smean_flat - w_target_flat)))
+    
+    return rmse + Aor_rmsle - Reg_factor*(Avar_mean - Tvar_sum) 
     
