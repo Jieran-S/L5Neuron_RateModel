@@ -19,3 +19,8 @@ Use ```python3 ds_os_model.py <put config here>``` where the second argument is 
 
 - The output both as figures and csv file. Figures are listed as learning_rule-simulation_number_act/weight.png
 - The csv file concludes the spatial variance, time variance and the mean final expression value of the system. All column are post-pre synpatic neurons. 
+
+### Parameter tuning 
+
+- Current method: Bayesian parameter inference. (Potentially varational bayesian inference in the future) 
+- Distribution input and distribution output surrounding the real value.
