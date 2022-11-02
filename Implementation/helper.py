@@ -54,7 +54,6 @@ def distributionInput_negative(a_data,b_data,spatialF, temporalF, orientation, s
     Generates a moving bar as input to CS, CC, PV, SST.
     Return an array A of size [T(t-step), N(population)]
     """
-
     i = 0
     inputs_p_all = []
     N_indices = [[0, N[0]], [sum(N[:1]), sum(N[:2])], [sum(N[:2]), sum(N[:3])], [sum(N[:3]), sum(N)]]
@@ -417,9 +416,9 @@ def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
     Aor_rmsle = np.sqrt(np.mean(np.square(Aor[Aor > 0])))
 
     # mean euclidean distance 
-    Smean_flat = Smean.reshape(Smean.shape[0],)
-    w_target_flat = w_target.reshape(1,)
+    Smean_flat = Smean.reshape(Smean.shape[0],-1)
+    w_target_flat = w_target.flatten()
     rmse = np.sqrt(np.mean(np.square(Smean_flat - w_target_flat)))
     
-    return rmse + Aor_rmsle - Reg_factor*(Avar_mean - Tvar_sum) 
+    return abs(rmse + Aor_rmsle - Reg_factor*(Avar_mean - Tvar_sum))
     

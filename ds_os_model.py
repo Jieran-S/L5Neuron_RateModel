@@ -1,3 +1,4 @@
+#%%
 # Path and file save environment
 from os.path import abspath
 from pathlib import Path  
@@ -114,18 +115,18 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             print(f'nan exist in sim:{sim}: ', np.count_nonzero(~np.isnan(activity[-1])))
             # assign the value such that it is plotable
             activity[-1][np.isnan(activity[-1])] = 1 
-
-        # check equilibrium
-        a1 = activity[-500:-250, :]
-        a2 = activity[-250:, :]
-        mean1 = np.mean(a1, axis=0)
-        mean2 = np.mean(a2, axis=0)
-        check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
-        if check_eq > 0:
-            not_eq_counter += 1
-            print(f'activity {sim} not converged with {int(check_eq)} neurons unconverged')
-        else: 
-            print(f'activity {sim} converges')
+        if evaluation_mode == True:
+            # check equilibrium
+            a1 = activity[-100:-50, :]
+            a2 = activity[-50:, :]
+            mean1 = np.mean(a1, axis=0)
+            mean2 = np.mean(a2, axis=0)
+            check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
+            if check_eq > 0:
+                not_eq_counter += 1
+                print(f'activity {sim} not converged with {int(check_eq)} neurons unconverged')
+            else: 
+                print(f'activity {sim} converges')
 
         # Sanity check
         # print(f'weight shape: {weights.shape}, sim: {sim}')
@@ -166,7 +167,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         list3 = ['Mean_' + x for x in sim_char_vec]
         list4 = ['Avar_' + x for x in sim_char_vec]
         indlist = np.concatenate([list1, list2, list3, list4])
-        csv_mat = np.concatenate([Tvar, Svar, Smean, np.repeat(Avar, 4, axis=1)], axis=0).reshape(Tvar.shape[0]*4, -1)
+        csv_mat = np.concatenate([Tvar, Svar, Smean, np.repeat(Avar, 4, axis=1).reshape(5,4,4)], axis=0).reshape(Tvar.shape[0]*4, -1)
         csv_df = pd.DataFrame(csv_mat, columns=mat_header, index = indlist)
 
         # saving csv files
@@ -174,11 +175,12 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         filepath.parent.mkdir(parents=True, exist_ok=True)
         csv_df.to_csv(filepath,  float_format='%.3f')
 
+        return (activity, weights)
     else:
         return (activity, weights)
 
-def objective(cs, cc, pv, sst):
-    amplitude = [cs, cc, pv, sst]
+def objective(params):
+    amplitude = [params['cc'], params['cs'], params['pv'], params['sst']]
     (activity, weights) = run_simulation( Amplitude= amplitude,
                 Steady_input= p.steady_input,
                 spatialF=p.spatialF,
@@ -196,56 +198,13 @@ def objective(cs, cc, pv, sst):
                                 MaxAct=p.Max_act)
     return lossval
 
+#%%
 ############### start simulation ###############
-
-# inputing all tunable parameters from the test.config
-(activity, weights) = run_simulation( Amplitude= p.amplitude,
-                Steady_input= p.steady_input,
-                spatialF=p.spatialF,
-                temporalF=p.temporalF,
-                spatialPhase=p.spatialPhase,
-                learning_rule= p.learning_rule, 
-                number_steps_before_learning =p.number_steps_before_learning, 
-                Ttau =p.Ttau,
-                evaluation_mode=True)
-# Hyperpot attempt
-if p.tuning == True: 
-    # define domain
-    space = {
-        'cs': hyperopt.hp.uniform('cs', 0, 20),
-        'cc': hyperopt.hp.uniform('cc', 0, 20),
-        'pv': hyperopt.hp.uniform('pv', 0, 20),
-        'sst':hyperopt.hp.uniform('sst', 0, 20)
-    }
-
-    # define algorithm
-    algo_tpe = hyperopt.tpe.suggest
-    algo_rand = hyperopt.rand.suggest
-
-    # define history
-    trails = hyperopt.Trials()
-
-    # Start hyperparameter search
-    tpe_best = hyperopt.fmin(fn=objective, space=space, algo=algo_tpe, trials=trails, 
-                    max_evals=2000, rstate= np.random.RandomState(50))
-
-    # Printing out results
-    print('Minimum loss attained with TPE:    {:.4f}'.format(trails.best_trial['result']['loss']))
-    print('\nNumber of trials needed to attain minimum with TPE:    {}'.format(trails.best_trial['misc']['idxs']['x'][0]))
-    print('\nBest input set: {}'.format(tpe_best)) 
-
-    # Saving the results into a csv file: still have to see here
-    tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
-                                'iteration': trails.idxs_vals[0]['cc'],
-                                'cs': trails.idxs_vals[1]['cs'],
-                                'cc': trails.idxs_vals[1]['cc'],
-                                'pv': trails.idxs_vals[1]['pv'],
-                                'sst': trails.idxs_vals[1]['sst'],})
-    # plot and visualize the value trace
-
-    # put the best parameter back and see the results
-    Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
-    run_simulation( Amplitude= Best_amplitude,
+if __name__ == "__main__":
+    
+    # inputing all tunable parameters from the test.config
+    '''
+    (activity, weights) = run_simulation( Amplitude= p.amplitude,
                     Steady_input= p.steady_input,
                     spatialF=p.spatialF,
                     temporalF=p.temporalF,
@@ -253,11 +212,61 @@ if p.tuning == True:
                     learning_rule= p.learning_rule, 
                     number_steps_before_learning =p.number_steps_before_learning, 
                     Ttau =p.Ttau,
-                    evaluation_mode=True)
+                    evaluation_mode=False)
+    '''
+  #%%  Hyper parameter tuning
+               
+    # Hyperpot attempt
+    if p.tuning == True: 
+        # define domain
+        space = {
+            'cs': hyperopt.hp.uniform('cs', 0, 20),
+            'cc': hyperopt.hp.uniform('cc', 0, 20),
+            'pv': hyperopt.hp.uniform('pv', 0, 20),
+            'sst':hyperopt.hp.uniform('sst', 0, 20)
+        }
 
-# Spearmint attempt
+        # define algorithm
+        algo_tpe = hyperopt.tpe.suggest
+        algo_rand = hyperopt.rand.suggest
 
-"""
+        # define history
+        trails = hyperopt.Trials()
+
+        # Start hyperparameter search
+        tpe_best = hyperopt.fmin(fn=objective, space=space, algo=algo_tpe, trials=trails, 
+                        max_evals=2000)
+#%% Tuning results visualization
+
+        # Printing out results
+        print('Minimum loss attained with TPE:    {:.4f}'.format(trails.best_trial['result']['loss']))
+        print('\nNumber of trials needed to attain minimum with TPE:    {}'.format(trails.best_trial['misc']['idxs']['x'][0]))
+        print('\nBest input set: {}'.format(tpe_best)) 
+
+        # Saving the results into a csv file: still have to see here
+       # tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
+       #                             'iteration': trails.idxs_vals[0]['cc'],
+       #                             'cs': trails.idxs_vals[1]['cs'],
+       #                             'cc': trails.idxs_vals[1]['cc'],
+       #                             'pv': trails.idxs_vals[1]['pv'],
+       #                             'sst': trails.idxs_vals[1]['sst'],})
+        # plot and visualize the value trace
+
+        # put the best parameter back and see the results
+        Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
+        run_simulation( Amplitude= Best_amplitude,
+                        Steady_input= p.steady_input,
+                        spatialF=p.spatialF,
+                        temporalF=p.temporalF,
+                        spatialPhase=p.spatialPhase,
+                        learning_rule= p.learning_rule, 
+                        number_steps_before_learning =p.number_steps_before_learning, 
+                        Ttau =p.Ttau,
+                        evaluation_mode=True)
+
+    # Spearmint attempt
+
+    """
 input_cs_steady=0,
                 input_cc_steady=0,
                 input_pv_steady=1,

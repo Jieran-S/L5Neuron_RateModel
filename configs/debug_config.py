@@ -1,26 +1,30 @@
 import numpy as np
 np.random.seed(42)
 
+'''
+Debug configuration, fewer neuron simluated. Testing the parameter searching funciton 
+and the hyperparameter tuning toolkit
+'''
+
 ####### simulation parameters #######
-sim_number = 10
+sim_number = 5
+# For parallel computing
 jobs_number = 4
-name_sim ='Test_Evaluation'
+name_sim ='Debug_Hyperopt'
 update_function = 'version_normal'
 integrator = 'forward_euler'
 
-
 # Simulation Config 
-# Total steps: int((Ttau*tau)/delta_t)
-
-delta_t = 0.02
-number_steps_before_learning = 1000
+# Total steps: (Ttau*tau)/delta_t = 30/0.05 = 600
+delta_t = 0.05
+number_steps_before_learning = 150
 
 # Learning rule hyperparameter
 # tau: BCM and activity update time scale 
 # Ttau: Total time simulation 
-# tau_threshold: Total time for 
+# tau_threshold: updating timescale for the threshold moving in slide learning rule
 tau = 0.1
-Ttau = 2000
+Ttau = 300
 tau_threshold = 1000
 
 ####### Network parameters #######
@@ -75,7 +79,7 @@ spatialPhase = 1
 
 # loss function parameter
 Max_act = 20
-tuning = False
+tuning = True
 ############# parameter not in use #################
 
 # cc_cs_weight = [0.19,0,0.0625,0.125,0.25,0.5,1] #np.arange(0,1,0.02)
