@@ -21,10 +21,10 @@ from joblib import Parallel, delayed
 import importlib
 import Implementation.network_model as nm
 import Implementation.helper as helper
-if len(sys.argv) != 0:
-    p = importlib.import_module(sys.argv[1])
-else:
-    import configs.test_config as p
+# if len(sys.argv) != 0:
+#     p = importlib.import_module(sys.argv[1])
+# else:
+import configs.debug_config as p
 
 np.random.seed(42)
 
@@ -103,11 +103,12 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                                     steady_input=steady_input, N=N)
 
         # run
-        activity, weights = Sn.run(inputs, initial_values)
+        activity, weights, steps = Sn.run(inputs, initial_values)
         
-        # Matrix slicing! Change the downstream scale if factor changed
-        activity = np.asarray(activity)[0::5]
-        weights = np.asarray(weights)[0::5]
+        # Slice the matrix within time scale to 1/2
+        # Taking only the last tsteps information, not taking the tuning part in concern 
+        activity = np.asarray(activity)[-Sn.tsteps::2]
+        weights = np.asarray(weights)[-Sn.tsteps::2]
 
         # check nan
         if np.isnan(activity[-1]).all():
@@ -124,9 +125,9 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
             if check_eq > 0:
                 not_eq_counter += 1
-                print(f'activity {sim} not converged with {int(check_eq)} neurons unconverged')
+                print(f'Simulation {sim} not converged: {int(check_eq)} neurons, {steps} steps')
             else: 
-                print(f'activity {sim} converges')
+                print(f'activity {sim} converges. {steps} steps')
 
         # Sanity check
         # print(f'weight shape: {weights.shape}, sim: {sim}')
@@ -203,7 +204,7 @@ def objective(params):
 if __name__ == "__main__":
     
     # inputing all tunable parameters from the test.config
-    '''
+    
     (activity, weights) = run_simulation( Amplitude= p.amplitude,
                     Steady_input= p.steady_input,
                     spatialF=p.spatialF,
@@ -212,8 +213,8 @@ if __name__ == "__main__":
                     learning_rule= p.learning_rule, 
                     number_steps_before_learning =p.number_steps_before_learning, 
                     Ttau =p.Ttau,
-                    evaluation_mode=False)
-    '''
+                    evaluation_mode=True)
+    
   #%%  Hyper parameter tuning
                
     # Hyperpot attempt
@@ -235,21 +236,21 @@ if __name__ == "__main__":
 
         # Start hyperparameter search
         tpe_best = hyperopt.fmin(fn=objective, space=space, algo=algo_tpe, trials=trails, 
-                        max_evals=2000)
+                        max_evals=20)
 #%% Tuning results visualization
 
         # Printing out results
         print('Minimum loss attained with TPE:    {:.4f}'.format(trails.best_trial['result']['loss']))
-        print('\nNumber of trials needed to attain minimum with TPE:    {}'.format(trails.best_trial['misc']['idxs']['x'][0]))
+        print('\nNumber of trials needed to attain minimum with TPE:    {}'.format(trails.best_trial['misc']['idxs']['cc'][0]))
         print('\nBest input set: {}'.format(tpe_best)) 
 
         # Saving the results into a csv file: still have to see here
-       # tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
-       #                             'iteration': trails.idxs_vals[0]['cc'],
-       #                             'cs': trails.idxs_vals[1]['cs'],
-       #                             'cc': trails.idxs_vals[1]['cc'],
-       #                             'pv': trails.idxs_vals[1]['pv'],
-       #                             'sst': trails.idxs_vals[1]['sst'],})
+        tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
+                                    'iteration': trails.idxs_vals[0]['cc'],
+                                    'cs': trails.idxs_vals[1]['cs'],
+                                    'cc': trails.idxs_vals[1]['cc'],
+                                    'pv': trails.idxs_vals[1]['pv'],
+                                    'sst': trails.idxs_vals[1]['sst'],}).fillna(method='ffill')
         # plot and visualize the value trace
 
         # put the best parameter back and see the results

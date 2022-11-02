@@ -14,17 +14,17 @@ name_sim ='Debug_Hyperopt'
 update_function = 'version_normal'
 integrator = 'forward_euler'
 
-# Simulation Config 
-# Total steps: (Ttau*tau)/delta_t = 30/0.05 = 600
-delta_t = 0.05
-number_steps_before_learning = 150
+# Simulation size config
+# Total steps: (Ttau*tau)/delta_t = 100/0.1 = 1,000
+delta_t = 0.1
+number_steps_before_learning = 250
 
 # Learning rule hyperparameter
 # tau: BCM and activity update time scale 
 # Ttau: Total time simulation 
 # tau_threshold: updating timescale for the threshold moving in slide learning rule
 tau = 0.1
-Ttau = 300
+Ttau = 1000
 tau_threshold = 1000
 
 ####### Network parameters #######
@@ -38,7 +38,6 @@ w_target = np.array( [[0.27, 0, 1.01, 0.05],
                        [-0.32, -0.52, -0.47, -0.44],
                        [-0.19, -0.11, -0.18, -0.19]])
 
-
 # Change the weight into random input
 W_1 = np.random.rand(2,4)
 W_2 = - np.random.rand(2,4)
@@ -51,7 +50,7 @@ prob = np.array([[0.16, 0, 0.18, 0.23],
                   [0.43, 0.38, 0.5, 0.14],
                   [0.52, 0.13, 0.29, 0.1]])
 
-# number of CS, CC, PV and SST neurons
+# number of CS, CC, PV and SST neurons 
 N = np.array([45, 275, 46, 34])
 
 w_noise = 0.03 # synaptic weight noise

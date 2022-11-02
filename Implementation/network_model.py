@@ -95,6 +95,15 @@ class SimpleNetwork:
             assert inputs.shape[0]==Ntotal
             inputs_time=inputs
         return inputs_time
+
+    def check_convergence(self, activities):
+        a1 = activities[-100:-50, :]
+        a2 = activities[-50:, :]
+        mean1 = np.mean(a1, axis=0)
+        mean2 = np.mean(a2, axis=0)
+        check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(self.N)), 1))
+        if check_eq < int(self.N* 0.1):
+            return True
             
     def run(self, inputs, start_activity):
         Ntotal = self.tsteps
@@ -131,9 +140,33 @@ class SimpleNetwork:
                                          Input=inputs_time[step], 
                                          prev_act=all_act[-self.number_timepoints_plasticity:], 
                                          nonlinearity=self.np_nonlinearity,)
-
             all_weights.append(new_weights)
-        return all_act, all_weights
+        
+        # Adding convergence check for last 100 steps
+        while self.check_convergence(np.array(all_act)) != True: 
+            step = step+1
+            new_act=self.integrator_function(self.update_act,  #intergation method
+                              all_act[-1],  #general parameters     
+                              delta_t=self.delta_t,
+                              tau=self.tau, w_rec= all_weights[-1] , w_input=self.W_input, #kwargs the input should be the same while keeping
+                              Input=inputs_time[step],            
+                              nonlinearity=self.np_nonlinearity, )
+            all_act.append(new_act) # append new activity to use for learning
+            
+            # if reached, update the weight function with the weight function learning rule
+            new_weights = self.integrator_function(self.learningrule,   #learning rule
+                                        all_weights[-1], #general parameters 
+                                        delta_t=self.delta_t, #kwargs
+                                        tau=self.tau, tau_learn=self.tau_learn, 
+                                        tau_threshold=self.tau_threshold,
+                                        w_rec=self.W_rec , w_input=self.W_input,
+                                        w_struct_mask=self.W_structure,
+                                        Input=inputs_time[step], 
+                                        prev_act=all_act[-self.number_timepoints_plasticity:], 
+                                        nonlinearity=self.np_nonlinearity,)
+            all_weights.append(new_weights)
+
+        return all_act, all_weights, step
             
         
         
