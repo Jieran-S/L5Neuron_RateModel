@@ -10,8 +10,7 @@ integrator = 'forward_euler'
 
 
 # Simulation Config 
-# Total steps: int((Ttau*tau)/delta_t)
-
+# Total steps: int((Ttau*tau)/delta_t) = 2000*0.1/0.02 = 10,000
 delta_t = 0.02
 number_steps_before_learning = 1000
 
