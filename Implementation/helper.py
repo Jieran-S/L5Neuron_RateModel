@@ -53,15 +53,23 @@ def distributionInput_negative(a_data,b_data,spatialF, temporalF, orientation, s
     """
     Generates a moving bar as input to CS, CC, PV, SST.
     Return an array A of size [T(t-step), N(population)]
+    a,b_data: Input axis coordinate for different cells. drawn from random cos/sin distribution
     """
     i = 0
+    # output list with all time-steps + neuron values
     inputs_p_all = []
-    N_indices = [[0, N[0]], [sum(N[:1]), sum(N[:2])], [sum(N[:2]), sum(N[:3])], [sum(N[:3]), sum(N)]]
+    # Section the index with different type of neurons
+    N_indices = [[0, N[0]],                 #CS
+                [sum(N[:1]), sum(N[:2])],   #CC
+                [sum(N[:2]), sum(N[:3])],   #PV
+                [sum(N[:3]), sum(N)]]       #SST
+    
     for popu in N_indices:
         inputs_p = []
 
+        # input = A cos(K x cos(theta) + K y sin(theta) - phi) * cos(w t)
         if steady_input[i] > 0.5:
-            for t in range(T):
+            for t in range(T): # all time steps
                 inputs_p.append(amplitude[i] * np.cos(
                     spatialF * a_data[popu[0]:popu[1]] * np.cos(orientation) +
                     spatialF * b_data[popu[0]:popu[1]] * np.sin(orientation) - spatialPhase)
@@ -286,7 +294,7 @@ def plot_activity(activity, N, title,sim, learningrule, Ttau):
 
     time_id = datetime.now().strftime("%m%d_%H:%M")
     title_save = f'{title}/{learningrule}_{sim}_{time_id}_act.png'
-    fig.savefig(title_save)
+    # fig.savefig(title_save)
 
 def plot_weights(weights, N, title, sim, learningrule, Ttau):
 
@@ -320,7 +328,7 @@ def plot_weights(weights, N, title, sim, learningrule, Ttau):
                 axs.plot(np.linspace(0, Ttau, x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
         
         name = ['CS', 'CC', 'PV','SST']
-        axs.set_title(f"postsyn:{name[j]}")
+        axs.set_title(f"postsyn(col):{name[j]}")
     
     # Set legend content and location
     handles, labels = axs.get_legend_handles_labels()
@@ -332,7 +340,7 @@ def plot_weights(weights, N, title, sim, learningrule, Ttau):
 
     time_id = datetime.now().strftime("%m%d_%H:%M")
     title_save =  f'{title}/{learningrule}_{sim}_{time_id}_weight.png'
-    fig.savefig(title_save)
+    # fig.savefig(title_save)
 
 def sim_eva(weights, activity, N):
     '''

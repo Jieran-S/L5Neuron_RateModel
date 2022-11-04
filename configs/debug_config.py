@@ -10,7 +10,7 @@ and the hyperparameter tuning toolkit
 sim_number = 5
 # For parallel computing
 jobs_number = 4
-name_sim ='Debug_Hyperopt'
+name_sim ='Debug_Hyperopt_First'
 update_function = 'version_normal'
 integrator = 'forward_euler'
 
@@ -31,7 +31,8 @@ tau_threshold = 1000
 learnlist = ['None','BCM','Slide_BCM']      #'Simple_test'
 learning_rule = learnlist[0]
  
-# synaptic strength matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
+# synaptic strength matrix of CS, CC, PV and SST neurons 
+# (rows are the presyn cell)
 # Campognola 2022 PSP amplitude
 
 w_target = np.array( [[0.27, 0, 1.01, 0.05],
@@ -45,7 +46,15 @@ W_2 = - np.random.rand(2,4)
 w_initial = np.concatenate([W_1, W_2], axis=0)
 '''
 
-w_initial = w_target
+# Extract the initial random value from the guassian distribution
+w_initial = np.empty_like(w_target)
+for i in range(w_target.shape[0]):
+    for j in range(w_target.shape[1]):
+        w_initial[i,j] = abs(np.random.normal(w_target[i,j], scale= 0.25)) 
+        if w_target[i,j] < 0:
+            w_initial[i,j] *= -1 
+
+# w_initial = w_target
 # Campognola 2022 PSP amplitude: https://www.science.org/doi/epdf/10.1126/science.abj5861 
 # connection probability matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
 prob = np.array([[0.16, 0, 0.18, 0.23],
@@ -71,10 +80,11 @@ steady_input = np.random.choice([0,1], size=(4,), replace=True)
 '''
 # Currently we kept all the same steady input
 steady_input = [1,1,1,1]
+amplitude = [1,1,3,3]
 
 # Hyperparameters for testing
 domain = np.linspace(0, 20, num= 100)
-amplitude = np.random.choice(domain, size=(4,), replace=True) 
+# amplitude = np.random.choice(domain, size=(4,), replace=True) 
 spatialF = 1
 temporalF = 1
 spatialPhase = 1
@@ -83,14 +93,3 @@ spatialPhase = 1
 Max_act = 20
 tuning = True
 ############# parameter not in use #################
-
-# cc_cs_weight = [0.19,0,0.0625,0.125,0.25,0.5,1] #np.arange(0,1,0.02)
-input_cs_steady = [0]
-input_cc_steady = [0]
-input_pv_steady = [1]
-input_sst_steady = [1]
-
-input_cs_amplitude = 1
-input_cc_amplitude = 1
-input_pv_amplitude = 10 
-input_sst_amplitude = 10

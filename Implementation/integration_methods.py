@@ -73,6 +73,9 @@ def BCM_rule(weights_project, kwargs):
     return timescale_learn*weight_change*kwargs['w_struct_mask']
 
 
+# def Partial_BCM(weight_project, kwargs):
+
+
 def BCM_rule_sliding_th(weights_project, kwargs):
     def threshold_old(activity_all):
         return np.var(activity_all, axis=0) + np.mean(activity_all, axis=0)**2    
