@@ -70,7 +70,14 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     weights_data = []
     for sim in range(p.sim_number):
 
-        w_initial = np.concatenate([np.random.rand(4,2), -np.random.rand(4,2)], axis=1)
+        w_target = p.w_target
+        w_initial = np.empty_like(w_target)
+        for i in range(w_target.shape[0]):
+            for j in range(w_target.shape[1]):
+                w_initial[i,j] = abs(np.random.normal(w_target[i,j], scale= 0.25)) 
+                if w_target[i,j] < 0:
+                    w_initial[i,j] *= -1         
+
         # Generating an synaptic matrix that returns the synaptic connections
         W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
@@ -81,6 +88,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
         # initial activity
         initial_values = np.random.uniform(low=0, high=1, size=(sum(N),)) 
+        # initial_values = np.zeros((sum(N),)) 
 
         success = 0
         a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
@@ -116,6 +124,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             print(f'nan exist in sim:{sim}: ', np.count_nonzero(~np.isnan(activity[-1])))
             # assign the value such that it is plotable
             activity[-1][np.isnan(activity[-1])] = 1 
+
         if evaluation_mode == True:
             # check equilibrium
             a1 = activity[-100:-50, :]
@@ -129,7 +138,6 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             else: 
                 print(f'activity {sim} converges. {steps} steps')
 
-        # Sanity check
         # print(f'weight shape: {weights.shape}, sim: {sim}')
         weights_data.append(weights)
         activity_data.append(activity)
@@ -138,7 +146,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     weights = np.asarray(weights_data)
 
     # Insert if success part here
-
+    
+    # plotting and saving simulation data
     if evaluation_mode == True:
 
         # Create folder and pathways for data storage
@@ -150,7 +159,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         csvtitle = f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}.csv'
 
         # plot randomly 2 simulation graph
-        for isim in np.random.choice(np.arange(sim), 2):
+        choice = np.random.choice(np.arange(sim), 2, replace=False)
+        for isim in choice:
             helper.plot_activity(activity, N, f'data/{DateFolder}',sim = isim, learningrule= learning_rule, Ttau = Ttau)
             helper.plot_weights(weights, N, f'data/{DateFolder}', sim = isim, learningrule= learning_rule, Ttau= Ttau)
 
@@ -174,7 +184,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         # saving csv files
         filepath = Path(csvtitle)  
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        csv_df.to_csv(filepath,  float_format='%.3f')
+        # csv_df.to_csv(filepath,  float_format='%.3f')
 
         return (activity, weights)
     else:
@@ -216,7 +226,7 @@ if __name__ == "__main__":
                     evaluation_mode=True)
     
   #%%  Hyper parameter tuning
-               
+if __name__ == "__main__":            
     # Hyperpot attempt
     if p.tuning == True: 
         # define domain
@@ -252,6 +262,17 @@ if __name__ == "__main__":
                                     'pv': trails.idxs_vals[1]['pv'],
                                     'sst': trails.idxs_vals[1]['sst'],}).fillna(method='ffill')
         # plot and visualize the value trace
+        now = datetime.now() # current date and time
+        DateFolder = now.strftime('%m_%d')
+        if os.path.exists(f'data/{DateFolder}') == False:
+            os.makedirs(f'data/{DateFolder}')
+        time_id = now.strftime("%m%d_%H:%M")
+        Tuning_Title = f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}_TuningResults.csv'
+
+        filepath = Path(Tuning_Title)  
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+    
+        tpe_best.to_csv(filepath, float_format='%.3f')
 
         # put the best parameter back and see the results
         Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
