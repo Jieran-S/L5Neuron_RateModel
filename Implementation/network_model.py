@@ -5,6 +5,7 @@ import numpy as np
 import time
 import Implementation.tools as snt
 import Implementation.integration_methods as im
+import Implementation.helper as helper
 
 class SimpleNetwork:
     def __init__(self,
@@ -101,11 +102,11 @@ class SimpleNetwork:
         a2 = activities[-50:, :]
         mean1 = np.mean(a1, axis=0)
         mean2 = np.mean(a2, axis=0)
-        check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(self.N)), 1))
-        if check_eq < int(self.N* 0.1):
+        check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(self.W_rec.shape[0]), 1))
+        if check_eq < int(self.W_rec.shape[0]* 0.1):
             return True
             
-    def run(self, inputs, start_activity):
+    def run(self, inputs, start_activity, simulate_till_converge):
         Ntotal = self.tsteps
         all_act=[]
         all_act.append(start_activity)
@@ -141,30 +142,39 @@ class SimpleNetwork:
                                          prev_act=all_act[-self.number_timepoints_plasticity:], 
                                          nonlinearity=self.np_nonlinearity,)
             all_weights.append(new_weights)
-        
-        # Adding convergence check for last 100 steps
-        while self.check_convergence(np.array(all_act)) != True: 
-            step = step+1
-            new_act=self.integrator_function(self.update_act,  #intergation method
-                              all_act[-1],  #general parameters     
-                              delta_t=self.delta_t,
-                              tau=self.tau, w_rec= all_weights[-1] , w_input=self.W_input, #kwargs the input should be the same while keeping
-                              Input=inputs_time[step],            
-                              nonlinearity=self.np_nonlinearity, )
-            all_act.append(new_act) # append new activity to use for learning
-            
-            # if reached, update the weight function with the weight function learning rule
-            new_weights = self.integrator_function(self.learningrule,   #learning rule
-                                        all_weights[-1], #general parameters 
-                                        delta_t=self.delta_t, #kwargs
-                                        tau=self.tau, tau_learn=self.tau_learn, 
-                                        tau_threshold=self.tau_threshold,
-                                        w_rec=self.W_rec , w_input=self.W_input,
-                                        w_struct_mask=self.W_structure,
-                                        Input=inputs_time[step], 
-                                        prev_act=all_act[-self.number_timepoints_plasticity:], 
-                                        nonlinearity=self.np_nonlinearity,)
-            all_weights.append(new_weights)
+        if simulate_till_converge == True: 
+            # Adding convergence check for last 100 steps
+            while self.check_convergence(activities=np.array(all_act)) != True: 
+                step = step+1
+                '''
+                Remark: For steady input, we can just reuse the previous input.
+                But for moving input related to t, we need to find the timing for the cycle to match the smooth transition 
+                np.cos(temporalF * t) -> Find the position for np.cos(temporalF * step)
+                Closest number: remainder of step divided by 2 pi
+                '''
+                input_step = int(Ntotal%(2*np.pi))+step-Ntotal+1
+                
+                new_act=self.integrator_function(self.update_act,  #intergation method
+                                all_act[-1],  #general parameters     
+                                delta_t=self.delta_t,
+                                tau=self.tau, w_rec= all_weights[-1] , 
+                                w_input=self.W_input, #kwargs the input should be the same while keeping
+                                Input=inputs_time[input_step],            
+                                nonlinearity=self.np_nonlinearity, )
+                all_act.append(new_act) # append new activity to use for learning
+                
+                # if reached, update the weight function with the weight function learning rule
+                new_weights = self.integrator_function(self.learningrule,   #learning rule
+                                            all_weights[-1], #general parameters 
+                                            delta_t=self.delta_t, #kwargs
+                                            tau=self.tau, tau_learn=self.tau_learn, 
+                                            tau_threshold=self.tau_threshold,
+                                            w_rec=self.W_rec , w_input=self.W_input,
+                                            w_struct_mask=self.W_structure,
+                                            Input=inputs_time[input_step], 
+                                            prev_act=all_act[-self.number_timepoints_plasticity:], 
+                                            nonlinearity=self.np_nonlinearity,)
+                all_weights.append(new_weights)
 
         return all_act, all_weights, step
             

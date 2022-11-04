@@ -103,7 +103,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                                     steady_input=steady_input, N=N)
 
         # run
-        activity, weights, steps = Sn.run(inputs, initial_values)
+        activity, weights, steps = Sn.run(inputs, initial_values, simulate_till_converge = True)
         
         # Slice the matrix within time scale to 1/2
         # Taking only the last tsteps information, not taking the tuning part in concern 
