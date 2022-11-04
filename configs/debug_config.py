@@ -1,5 +1,5 @@
 import numpy as np
-np.random.seed(42)
+np.random.seed(50)
 
 '''
 Debug configuration, fewer neuron simluated. Testing the parameter searching funciton 
@@ -29,20 +29,23 @@ tau_threshold = 1000
 
 ####### Network parameters #######
 learnlist = ['None','BCM','Slide_BCM']      #'Simple_test'
-learning_rule = learnlist[1]
+learning_rule = learnlist[0]
  
 # synaptic strength matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
 # Campognola 2022 PSP amplitude
+
 w_target = np.array( [[0.27, 0, 1.01, 0.05],
                        [0.19, 0.24, 0.48, 0.09],
                        [-0.32, -0.52, -0.47, -0.44],
                        [-0.19, -0.11, -0.18, -0.19]])
-
+'''
 # Change the weight into random input
 W_1 = np.random.rand(2,4)
 W_2 = - np.random.rand(2,4)
 w_initial = np.concatenate([W_1, W_2], axis=0)
+'''
 
+w_initial = w_target
 # Campognola 2022 PSP amplitude: https://www.science.org/doi/epdf/10.1126/science.abj5861 
 # connection probability matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
 prob = np.array([[0.16, 0, 0.18, 0.23],
@@ -89,5 +92,5 @@ input_sst_steady = [1]
 
 input_cs_amplitude = 1
 input_cc_amplitude = 1
-input_pv_amplitude = 2
-input_sst_amplitude = 2
+input_pv_amplitude = 10 
+input_sst_amplitude = 10
