@@ -152,7 +152,7 @@ class SimpleNetwork:
                 np.cos(temporalF * t) -> Find the position for np.cos(temporalF * step)
                 Closest number: remainder of step divided by 2 pi
                 '''
-                input_step = int(Ntotal%(2*np.pi))+step-Ntotal+1
+                input_step = int(Ntotal%(2*np.pi))+step%Ntotal
                 
                 new_act=self.integrator_function(self.update_act,  #intergation method
                                 all_act[-1],  #general parameters     
@@ -175,6 +175,8 @@ class SimpleNetwork:
                                             prev_act=all_act[-self.number_timepoints_plasticity:], 
                                             nonlinearity=self.np_nonlinearity,)
                 all_weights.append(new_weights)
+                if step >= int(Ntotal*2.2):
+                    break
 
         return all_act, all_weights, step
             

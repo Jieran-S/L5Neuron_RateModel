@@ -211,6 +211,7 @@ def objective(params):
 
 #%%
 ############### start simulation ###############
+'''
 if __name__ == "__main__":
     
     # inputing all tunable parameters from the test.config
@@ -224,7 +225,7 @@ if __name__ == "__main__":
                     number_steps_before_learning =p.number_steps_before_learning, 
                     Ttau =p.Ttau,
                     evaluation_mode=True)
-    
+'''
   #%%  Hyper parameter tuning
 if __name__ == "__main__":            
     # Hyperpot attempt
@@ -246,7 +247,7 @@ if __name__ == "__main__":
 
         # Start hyperparameter search
         tpe_best = hyperopt.fmin(fn=objective, space=space, algo=algo_tpe, trials=trails, 
-                        max_evals=20)
+                        max_evals=3000)
 #%% Tuning results visualization
 
         # Printing out results
