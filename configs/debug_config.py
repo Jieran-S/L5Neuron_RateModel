@@ -90,6 +90,6 @@ temporalF = 1
 spatialPhase = 1
 
 # loss function parameter
-Max_act = 20
+Max_act = 15
 tuning = True
 ############# parameter not in use #################

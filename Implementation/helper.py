@@ -418,10 +418,13 @@ def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
     Avar_mean = np.mean(Avar) # Just take the average activity across differen type is enough
     Reg_factor = 0.1
 
-    # Taking the root mean square log error(RMSLE) panelty for out-of-range activity
+    # Taking the root mean sAquare log error(RMSLE) panelty for out-of-range activity
     Activity = abs(np.mean(Activity[:, -20:, :], axis = 1).flatten() - 0.5*MaxAct)
     Aor = np.log1p(Activity) - np.log1p(0.5*MaxAct)
-    Aor_rmsle = np.sqrt(np.mean(np.square(Aor[Aor > 0])))
+    if len(Aor[Aor>0]) == 0: 
+        Aor_rmsle = 0 
+    else:
+        Aor_rmsle = np.sqrt(np.mean(np.square(Aor[Aor > 0])))
 
     # mean euclidean distance, w_target need to be transposed as the row should mean post-syn neurons
     Smean_flat = Smean.reshape(Smean.shape[0],-1)
