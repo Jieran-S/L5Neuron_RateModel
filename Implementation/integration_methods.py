@@ -92,7 +92,7 @@ def BCM_rule_sliding_th(weights_project, kwargs):
         thresholds=timescale*integrate.simps(y=prefactors_inside_integral[:,None]*activity_all**2,x=None, dx=dt, axis=0)
         return thresholds
     
-    timescale_learn=kwargs['tau_learn']
+    timescale_learn=1./(kwargs['tau_learn'])
     activity_all=np.asarray(kwargs['prev_act'])
     inputs=kwargs['Input']
     N = kwargs['N']

@@ -16,22 +16,26 @@ integrator = 'forward_euler'
 
 # Simulation size config
 # Total steps: (Ttau*tau)/delta_t = 100/0.1 = 1,000
-delta_t = 0.1
+delta_t = 0.015
 number_steps_before_learning = 250
 
 # Learning rule hyperparameter
-# tau: BCM and activity update time scale 
-# Ttau: Total time simulation 
-# tau_threshold: updating timescale for the threshold moving in slide learning rule
-tau = 0.1
-Ttau = 1000
-tau_learn = 1000 
+# Ttau*tau: Total simulation duration
+# tau: reverse of neuron activity updating scale 
+# tau_learn: reverse of weight updating scale
+# tau_threshold: reverse of threshold updating scale
+# Relationship: Tau > Tau_threshold > Tau_learn (?Threshold updating quicker?), 
+#               and delta_t sufficiently small
+
+tau = 5
+Ttau = 300
+tau_learn = 1300
 tau_threshold = 1000
 
 ####### Network parameters #######
 learnlist = ['None','BCM','Slide_BCM']      #'Simple_test'
 learning_rule = learnlist[2]
-excit_only = True
+excit_only = False
 
 # synaptic strength matrix of CS, CC, PV and SST neurons 
 # (rows are the presyn cell)
@@ -80,7 +84,8 @@ steady_input = np.random.choice([0,1], size=(4,), replace=True)
 '''
 # Currently we kept all the same steady input
 steady_input = [1,1,1,1]
-amplitude = [1,1,3,3]
+amplitude = [9.643012774633239e-05, 0.020879149043897538, 
+                    10.010508980664966, 4.970944652785914]
 
 # Hyperparameters for testing
 domain = np.linspace(0, 20, num= 100)

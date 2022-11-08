@@ -75,8 +75,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         for i in range(2):
             for j in range(2):
                 w_initial[i,j] = abs(np.random.normal(w_target[i,j], scale= 0.25))      
-        print(f"sim: {sim}:" )
-        print(w_initial)
+        # print(f"sim: {sim}:" )
+        # print(w_initial)
         # Generating an synaptic matrix that returns the synaptic connections
         W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
