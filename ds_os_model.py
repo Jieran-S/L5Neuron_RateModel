@@ -71,13 +71,12 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     for sim in range(p.sim_number):
 
         w_target = p.w_target
-        w_initial = np.empty_like(w_target)
-        for i in range(w_target.shape[0]):
-            for j in range(w_target.shape[1]):
-                w_initial[i,j] = abs(np.random.normal(w_target[i,j], scale= 0.25)) 
-                if w_target[i,j] < 0:
-                    w_initial[i,j] *= -1         
-
+        w_initial = w_target
+        for i in range(2):
+            for j in range(2):
+                w_initial[i,j] = abs(np.random.normal(w_target[i,j], scale= 0.25))      
+        print(f"sim: {sim}:" )
+        print(w_initial)
         # Generating an synaptic matrix that returns the synaptic connections
         W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
@@ -87,7 +86,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         W_project_initial = np.eye(num_neurons)
 
         # initial activity
-        initial_values = np.random.uniform(low=0, high=1, size=(sum(N),)) 
+        initial_values = np.random.uniform(low=0, high=1, size=(np.sum(N),)) 
         # initial_values = np.zeros((sum(N),)) 
 
         success = 0
@@ -101,9 +100,9 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         g = p.degree
         Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
                                 integrator=p.integrator, delta_t=p.delta_t, tau=p.tau, Ttau=Ttau, 
-                                number_steps_before_learning = number_steps_before_learning, 
+                                tau_learn=p.tau_learn, number_steps_before_learning = number_steps_before_learning, 
                                 update_function=p.update_function, learning_rule=learning_rule,
-                                gamma=p.gamma)
+                                gamma=p.gamma, N = p.N, excit_only= p.excit_only)
         # define inputs
         inputs = helper.distributionInput_negative(a_data=a_data, b_data=b_data,
                                     spatialF=spatialF, temporalF=temporalF, orientation=g,
@@ -161,7 +160,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         # plot randomly 2 simulation graph
         choice = np.random.choice(np.arange(sim), 2, replace=False)
         for isim in choice:
-            helper.plot_activity(activity, N, f'data/{DateFolder}',sim = isim, learningrule= learning_rule, Ttau = Ttau)
+            helper.plot_activity(activity, N, sim = isim, learningrule= learning_rule, Ttau = Ttau)
             helper.plot_weights(weights, N, f'data/{DateFolder}', sim = isim, learningrule= learning_rule, Ttau= Ttau)
 
         # Evaluation metric 
@@ -186,9 +185,9 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         filepath.parent.mkdir(parents=True, exist_ok=True)
         # csv_df.to_csv(filepath,  float_format='%.3f')
 
-        return (activity, weights)
+        return (activity, weights, Sn)
     else:
-        return (activity, weights)
+        return (activity, weights, Sn)
 
 def objective(params):
     amplitude = [params['cc'], params['cs'], params['pv'], params['sst']]
@@ -209,14 +208,15 @@ def objective(params):
                                 MaxAct=p.Max_act)
     return lossval
 
+
 #%%
 ############### start simulation ###############
-'''
+
 if __name__ == "__main__":
     
     # inputing all tunable parameters from the test.config
     
-    (activity, weights) = run_simulation( Amplitude= p.amplitude,
+    (activity, weights, Sn) = run_simulation( Amplitude= p.amplitude,
                     Steady_input= p.steady_input,
                     spatialF=p.spatialF,
                     temporalF=p.temporalF,
@@ -225,7 +225,7 @@ if __name__ == "__main__":
                     number_steps_before_learning =p.number_steps_before_learning, 
                     Ttau =p.Ttau,
                     evaluation_mode=True)
-'''
+
   #%%  Hyper parameter tuning
 if __name__ == "__main__":            
     # Hyperpot attempt
@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
         # Start hyperparameter search
         tpe_best = hyperopt.fmin(fn=objective, space=space, algo=algo_tpe, trials=trails, 
-                        max_evals=3000)
+                        max_evals=2000)
 #%% Tuning results visualization
 
         # Printing out results
@@ -274,10 +274,10 @@ if __name__ == "__main__":
         filepath.parent.mkdir(parents=True, exist_ok=True)
         
         # saving the hyperparameter tuning profile
-        tpe_best.to_csv(filepath, float_format='%.3f')
+        tpe_results.to_csv(filepath, float_format='%.3f')
         
         # plotting the hyperparameter tuning profile 
-        
+
 
         # put the best parameter back and see the results
         Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
