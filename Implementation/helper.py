@@ -449,3 +449,12 @@ def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
     
     return abs(100*rmse + Aor_rmsle - Reg_factor*(Avar_mean - Tvar_sum))
     
+def Stable_sim_loss(activity, Max_act = 20): 
+    '''
+    evaluating the amount of capping happening in the curent situation
+    '''
+    residual_value = activity.flatten() - Max_act
+    Total_Capped = len(residual_value > -0.01)
+    No_Neuron_Capped = np.sum(np.any(activity-Max_act>-0.01, axis = 1))
+
+    return No_Neuron_Capped * Total_Capped

@@ -34,7 +34,10 @@ np.random.seed(42)
  input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude, 
 '''
 def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase, 
-                    learning_rule, number_steps_before_learning, Ttau, evaluation_mode):
+                    learning_rule, number_steps_before_learning, Ttau, evaluation_mode,
+                    tau, 
+                    tau_learn, 
+                    tau_threshold):
     """
     not_before = 0
     if not(input_cs_steady==0 and input_cc_steady==0 and input_pv_steady==0 and input_sst_steady==0):
@@ -49,6 +52,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     N = p.N
     prob = p.prob
     w_initial = p.w_initial
+    w_target = p.w_target
     # w_initial[1,0] = cc_cs_weight
     w_noise = p.w_noise
 
@@ -70,11 +74,16 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     weights_data = []
     for sim in range(p.sim_number):
 
-        w_target = p.w_target
-        w_initial = w_target
-        for i in range(2):
-            for j in range(2):
-                w_initial[i,j] = abs(np.random.normal(w_target[i,j], scale= 0.25))      
+        w_initial = np.array( [[0.27, 0, 1.01, 0.05],
+                       [0.19, 0.24, 0.48, 0.09],
+                       [-0.32, -0.52, -0.47, -0.44],
+                       [-0.19, -0.11, -0.18, -0.19]])
+        w_intiial_CCCS = np.array([ [0.27, 0    ],
+                                    [0.19, 0.24,]])
+        if p.learning_rule != 'None':
+            for i in range(2):
+                for j in range(2):
+                    w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.25)) 
         # print(f"sim: {sim}:" )
         # print(w_initial)
         # Generating an synaptic matrix that returns the synaptic connections
@@ -99,10 +108,14 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             # build network here
         g = p.degree
         Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
-                                integrator=p.integrator, delta_t=p.delta_t, tau=p.tau, Ttau=Ttau, 
-                                tau_learn=p.tau_learn, number_steps_before_learning = number_steps_before_learning, 
+                                integrator=p.integrator, delta_t=p.delta_t, number_steps_before_learning = number_steps_before_learning, 
                                 update_function=p.update_function, learning_rule=learning_rule,
-                                gamma=p.gamma, N = p.N, excit_only= p.excit_only)
+                                gamma=p.gamma, N = p.N, excit_only= p.excit_only, 
+                                #parameters to tune
+                                tau=tau, 
+                                Ttau=Ttau, 
+                                tau_learn=tau_learn, 
+                                tau_threshold=tau_threshold,)
         # define inputs
         inputs = helper.distributionInput_negative(a_data=a_data, b_data=b_data,
                                     spatialF=spatialF, temporalF=temporalF, orientation=g,
@@ -191,7 +204,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
 def objective(params):
     amplitude = [params['cc'], params['cs'], params['pv'], params['sst']]
-    (activity, weights) = run_simulation( Amplitude= amplitude,
+    (activity, weights, Sn) = run_simulation( 
+                Amplitude= amplitude,
                 Steady_input= p.steady_input,
                 spatialF=p.spatialF,
                 temporalF=p.temporalF,
@@ -199,7 +213,10 @@ def objective(params):
                 learning_rule= p.learning_rule, 
                 number_steps_before_learning =p.number_steps_before_learning, 
                 Ttau =p.Ttau,
-                evaluation_mode=False)
+                tau = p.tau, 
+                tau_learn = p.tau_learn, 
+                tau_threshold=p.tau_threshold,
+                evaluation_mode=False) 
     
     (Tvar, Svar, Smean, Avar) = helper.sim_eva(weights=weights, activity= activity, N=p.N)
     lossval = helper.lossfun(Tvar, Svar, Smean, Avar, 
@@ -208,6 +225,24 @@ def objective(params):
                                 MaxAct=p.Max_act)
     return lossval
 
+def stable_sim_objective(params): 
+    tau, tau_learn, tau_threshold = params['tau'], params['tau_learn'], params['tau_threshold']
+    (activity, _, _) = run_simulation( 
+                Amplitude= p.amplitude,
+                Steady_input= p.steady_input,
+                spatialF=p.spatialF,
+                temporalF=p.temporalF,
+                spatialPhase=p.spatialPhase,
+                learning_rule= p.learning_rule, 
+                number_steps_before_learning =p.number_steps_before_learning, 
+                Ttau =p.Ttau,
+                tau = tau, 
+                tau_learn = tau_learn, 
+                tau_threshold=tau_threshold,
+                evaluation_mode=False) 
+    
+    lossval = helper.Stable_sim_loss(activity=activity, Max_act=20)
+    return lossval
 
 #%%
 ############### start simulation ###############
@@ -215,7 +250,6 @@ def objective(params):
 if __name__ == "__main__":
     
     # inputing all tunable parameters from the test.config
-    
     (activity, weights, Sn) = run_simulation( Amplitude= p.amplitude,
                     Steady_input= p.steady_input,
                     spatialF=p.spatialF,
@@ -224,19 +258,29 @@ if __name__ == "__main__":
                     learning_rule= p.learning_rule, 
                     number_steps_before_learning =p.number_steps_before_learning, 
                     Ttau =p.Ttau,
-                    evaluation_mode=True)
+                    tau=p.tau,
+                    tau_learn=p.tau_learn,
+                    tau_threshold=p.tau_threshold,
+                    evaluation_mode=True,)
 
   #%%  Hyper parameter tuning
 if __name__ == "__main__":            
     # Hyperpot attempt
     if p.tuning == True: 
         # define domain
+        '''
         space = {
             'cs': hyperopt.hp.uniform('cs', 0, 20),
             'cc': hyperopt.hp.uniform('cc', 0, 20),
             'pv': hyperopt.hp.uniform('pv', 0, 20),
             'sst':hyperopt.hp.uniform('sst', 0, 20)
         }
+        '''
+        space = {
+            'tau': hyperopt.hp.uniform('tau', 0.5, 30),
+            'tau_learn': hyperopt.hp.uniform('tau_learn', 200, 2000),
+            'tau_threshold': hyperopt.hp.uniform('tau_threshold', 200, 1500),
+        }        
 
         # define algorithm
         algo_tpe = hyperopt.tpe.suggest
