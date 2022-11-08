@@ -1,10 +1,12 @@
 import enum
+import os
 import numpy as np
 import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from datetime import datetime
 import csv
+import configs.debug_config
 
 # remove top and right axis from plots
 mpl.rcParams["axes.spines.right"] = False
@@ -267,11 +269,12 @@ def calculate_selectivity(activity_popu):
 
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,os_paper_mean_data,os_paper_std_data)
 
-def plot_activity(activity, N, title,sim, learningrule, Ttau):
+def plot_activity(activity, N,sim, learningrule, Ttau):
 
     '''
     activity: 3d matrix with infomraiton on the activation of different neurons
     '''
+
     if len(activity) == 0:
         return(0)
     # Extract the connectivity data for each cell population? 
@@ -292,11 +295,17 @@ def plot_activity(activity, N, title,sim, learningrule, Ttau):
 
     fig.tight_layout(pad=2.0)
 
+    now = datetime.now() # current date and time
+    DateFolder = now.strftime('%m_%d')
+    if os.path.exists(f'data/{DateFolder}') == False:
+        os.makedirs(f'data/{DateFolder}')
+    time_id = now.strftime("%m%d_%H:%M")
+
     time_id = datetime.now().strftime("%m%d_%H:%M")
-    title_save = f'{title}/{learningrule}_{sim}_{time_id}_act.png'
+    title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_act.png'
     # fig.savefig(title_save)
 
-def plot_weights(weights, N, title, sim, learningrule, Ttau):
+def plot_weights(weights, N, saving, sim, learningrule, Ttau):
 
     '''
     weights: a 3D matrix (4D if all simulation taken into account): Tstep x N(post-syn) x N(pre-syn)
@@ -338,9 +347,16 @@ def plot_weights(weights, N, title, sim, learningrule, Ttau):
     #save graph
     fig.tight_layout(pad=2.0)
 
+    now = datetime.now() # current date and time
+    DateFolder = now.strftime('%m_%d')
+    if os.path.exists(f'data/{DateFolder}') == False:
+        os.makedirs(f'data/{DateFolder}')
+    time_id = now.strftime("%m%d_%H:%M")
+
     time_id = datetime.now().strftime("%m%d_%H:%M")
-    title_save =  f'{title}/{learningrule}_{sim}_{time_id}_weight.png'
-    # fig.savefig(title_save)
+    title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_weight.png'
+    if saving == True:
+        fig.savefig(title_save)
 
 def sim_eva(weights, activity, N):
     '''

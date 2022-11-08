@@ -25,12 +25,14 @@ number_steps_before_learning = 250
 # tau_threshold: updating timescale for the threshold moving in slide learning rule
 tau = 0.1
 Ttau = 1000
+tau_learn = 1000 
 tau_threshold = 1000
 
 ####### Network parameters #######
 learnlist = ['None','BCM','Slide_BCM']      #'Simple_test'
-learning_rule = learnlist[1]
- 
+learning_rule = learnlist[2]
+excit_only = True
+
 # synaptic strength matrix of CS, CC, PV and SST neurons 
 # (rows are the presyn cell)
 # Campognola 2022 PSP amplitude
@@ -47,12 +49,10 @@ w_initial = np.concatenate([W_1, W_2], axis=0)
 '''
 
 # Extract the initial random value from the guassian distribution
-w_initial = np.empty_like(w_target)
-for i in range(w_target.shape[0]):
-    for j in range(w_target.shape[1]):
+w_initial = w_target
+for i in range(2):
+    for j in range(2):
         w_initial[i,j] = abs(np.random.normal(w_target[i,j], scale= 0.25)) 
-        if w_target[i,j] < 0:
-            w_initial[i,j] *= -1 
 
 # w_initial = w_target
 # Campognola 2022 PSP amplitude: https://www.science.org/doi/epdf/10.1126/science.abj5861 
@@ -70,7 +70,7 @@ w_noise = 0.03 # synaptic weight noise
 ####### Activation function #######
 nonlinearity_rule = 'supralinear'
 gamma = 1
-
+ 
 ####### Input #######
 degree = 0 
 

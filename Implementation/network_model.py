@@ -1,4 +1,5 @@
 from os.path import abspath, sep, pardir 
+import os
 import sys
 sys.path.append(abspath('') + sep + pardir + sep )
 import numpy as np
@@ -6,6 +7,9 @@ import time
 import Implementation.tools as snt
 import Implementation.integration_methods as im
 import Implementation.helper as helper
+import matplotlib.pyplot as plt
+from datetime import datetime
+
 
 class SimpleNetwork:
     def __init__(self,
@@ -22,7 +26,9 @@ class SimpleNetwork:
                 update_function='version_normal',
                 learning_rule = 'Simple_test',
                 gamma=1,
-                W_structure=None):
+                W_structure=None,
+                N = np.array([45, 275, 46, 34]),
+                excit_only = True):
         self.W_rec =W_rec
         self.W_input=W_project
         if W_structure is not None:
@@ -36,9 +42,12 @@ class SimpleNetwork:
         self.tau=tau
         self.tau_learn=tau_learn
         self.tau_threshold=tau_threshold
+        self.N = N
+        self.excit_only = excit_only
 
         # Tuning: Plotting and simulation parameter. Controlling tsteps = 2000 and learning_step = 250
         self.tsteps=int((Ttau*tau)/delta_t)
+        self.Ttau = Ttau
         self.number_steps_before_learning = number_steps_before_learning
         self.number_timepoints_plasticity = int(-1*(self.tau_threshold/self.delta_t)*np.log(0.1))
         self.update_function=update_function
@@ -140,7 +149,8 @@ class SimpleNetwork:
                                          w_struct_mask=self.W_structure,
                                          Input=inputs_time[step], 
                                          prev_act=all_act[-self.number_timepoints_plasticity:], 
-                                         nonlinearity=self.np_nonlinearity,)
+                                         nonlinearity=self.np_nonlinearity,
+                                         N = self.N, excit_only = self.excit_only)
             all_weights.append(new_weights)
         if simulate_till_converge == True: 
             # Adding convergence check for last 100 steps
@@ -167,20 +177,115 @@ class SimpleNetwork:
                 new_weights = self.integrator_function(self.learningrule,   #learning rule
                                             all_weights[-1], #general parameters 
                                             delta_t=self.delta_t, #kwargs
-                                            tau=self.tau, tau_learn=self.tau_learn, 
+                                            tau=self.tau, tau_learn=self.tau_learn,  
                                             tau_threshold=self.tau_threshold,
                                             w_rec=self.W_rec , w_input=self.W_input,
                                             w_struct_mask=self.W_structure,
                                             Input=inputs_time[input_step], 
                                             prev_act=all_act[-self.number_timepoints_plasticity:], 
-                                            nonlinearity=self.np_nonlinearity,)
+                                            nonlinearity=self.np_nonlinearity,
+                                            N = self.N, excit_only = self.excit_only)
                 all_weights.append(new_weights)
                 if step >= int(Ntotal*2.2):
                     break
-
+        
+        self.activity = all_act
+        self.weights = all_weights
         return all_act, all_weights, step
             
         
+    def plot_activity(self, activity, sim, saving = False):
+        '''
+        activity: 3d matrix with infomraiton on the activation of different neurons
+        '''
+        N = self.N
+        Ttau = self.Ttau
+        learningrule = self.learning_rule
+
+        if len(activity) == 0:
+            return(0)
+        # Extract the connectivity data for each cell population? 
+        activity = activity[sim]
+        activity_cs = activity[:, :N[0]]
+        activity_cc = activity[:, sum(N[:1]):sum(N[:2])]
+        activity_pv = activity[:, sum(N[:2]):sum(N[:3])]
+        activity_sst = activity[:, sum(N[:3]):sum(N)]
+        activity_vec = [activity_cs, activity_cc, activity_pv, activity_sst]
+        namelist = ['CS', 'CC', 'PV', 'SST']
+
+        fig,axes = plt.subplots(2,2)
+        for ind, act in enumerate(activity_vec):
+            axs = axes.flatten()[ind]
+            for i in range(act.shape[1]):
+                axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.5)
+            axs.set_title(namelist[ind])
+
+        fig.tight_layout(pad=2.0)
+
+        now = datetime.now() # current date and time
+        DateFolder = now.strftime('%m_%d')
+        if os.path.exists(f'data/{DateFolder}') == False:
+            os.makedirs(f'data/{DateFolder}')
+        time_id = now.strftime("%m%d_%H:%M")
+
+        time_id = datetime.now().strftime("%m%d_%H:%M")
+        title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_act.png'
+        if saving == True:
+            fig.savefig(title_save)   
         
+    def plot_weights(self, weights, sim, saving = False):
+
+        '''
+        weights: a 3D matrix (4D if all simulation taken into account): Tstep x N(post-syn) x N(pre-syn)
+        '''
+        N = self.N
+        Ttau = self.Ttau
+        learningrule = self.learning_rule
+
+        weights = weights[sim]
+        weight_cs = weights[:, :N[0], :]
+        weight_cc = weights[:, sum(N[:1]):sum(N[:2]), :]
+        weight_pv = weights[:, sum(N[:2]):sum(N[:3]), :]
+        weight_sst = weights[:, sum(N[:3]):sum(N), :]
+        weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
+
+        fig, axes = plt.subplots(2,2)
+        for j,wei in enumerate(weights_vector):
+            # return the average weight from one cell to a specific responses
+            w_to_cs = np.mean(wei[:, :, :N[0]], axis=-1)
+            w_to_cc = np.mean(wei[:, :, sum(N[:1]):sum(N[:2])], axis= -1 )
+            w_to_pv = np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis= -1 )
+            w_to_sst = np.mean(wei[:, :, sum(N[:3]):sum(N)], axis= -1 )
+            x_length = w_to_cc.shape[0]
+            # see full colortable: https://matplotlib.org/3.1.0/gallery/color/named_colors.html
+            color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
+            label_list = ['cs pre', 'cc pre', 'pv pre', 'sst pre']
+            # Specify the graph
+            axs = axes.flatten()[j]
+            # Different weight type
+            for ind,plotwei in enumerate([w_to_cs,w_to_cc, w_to_pv, w_to_sst]):
+                # Different cell numbers
+                for i in range(plotwei.shape[1]):
+                    axs.plot(np.linspace(0, Ttau, x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
+            
+            name = ['CS', 'CC', 'PV','SST']
+            axs.set_title(f"postsyn(col):{name[j]}")
         
-    
+        # Set legend content and location
+        handles, labels = axs.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        fig.legend(by_label.values(), by_label.keys(),loc = 'lower center', ncol = 4, bbox_to_anchor=(0.5, 0))
+
+        #save graph
+        fig.tight_layout(pad=2.0)
+
+        now = datetime.now() # current date and time
+        DateFolder = now.strftime('%m_%d')
+        if os.path.exists(f'data/{DateFolder}') == False:
+            os.makedirs(f'data/{DateFolder}')
+        time_id = now.strftime("%m%d_%H:%M")
+
+        time_id = datetime.now().strftime("%m%d_%H:%M")
+        title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_weight.png'
+        if saving == True:
+            fig.savefig(title_save)

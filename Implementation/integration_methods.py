@@ -61,19 +61,23 @@ def Simple_test_learn(x, kwargs):
 
 def BCM_rule(weights_project, kwargs):
     timescale_learn=1./(kwargs['tau_learn'])
-    activity_all=kwargs['prev_act']
+    activity_all=np.asarray(kwargs['prev_act'])
     activity_current=activity_all[-1]
     inputs=kwargs['Input']
+    N = kwargs['N']
     
     tresholds=np.var(activity_all, axis=0) + np.mean(activity_all, axis=0)**2
     activity_presyn = activity_current*(activity_current-tresholds)
     weight_change=np.dot(activity_presyn[:,None], inputs[None,:])/(tresholds[:,None])
+
+    #trimming only for excitory neurons(CC, CS)
+    if kwargs['excit_only'] == True: 
+        weight_change[:, -np.sum(N[2:]):]= 0
+        weight_change[-np.sum(N[2:]):, :]= 0
+    
     # return a N x N matrix, row is post-syn, col is pre-syn
     # print(timescale_learn*weight_change*kwargs['w_struct_mask'])
     return timescale_learn*weight_change*kwargs['w_struct_mask']
-
-
-# def Partial_BCM(weight_project, kwargs):
 
 
 def BCM_rule_sliding_th(weights_project, kwargs):
@@ -89,19 +93,22 @@ def BCM_rule_sliding_th(weights_project, kwargs):
         return thresholds
     
     timescale_learn=kwargs['tau_learn']
-    activity_all=kwargs['prev_act']    
+    activity_all=np.asarray(kwargs['prev_act'])
     inputs=kwargs['Input']
+    N = kwargs['N']
     activity_current=activity_all[-1]
     thresholds=threshold_function(activity_all=np.asarray(activity_all), 
                                 dt=kwargs['delta_t'],
                                 timescale=1./(kwargs['tau_threshold']))
+
     activity_postsyn = activity_current*(activity_current-thresholds)
     weight_change=np.dot(activity_postsyn[:,None], inputs[None,:])/(thresholds[:,None])
+    
+    #trimming only for excitory neurons(CC, CS)
+    if kwargs['excit_only'] == True: 
+        weight_change[:, -np.sum(N[2:]):]= 0
+        weight_change[-np.sum(N[2:]):, :]= 0
+    
     # return a N x N matrix, row is post-syn, col is pre-syn
     return timescale_learn*weight_change*kwargs['w_struct_mask']
-    
-
-
-
-
-
+ 
