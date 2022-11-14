@@ -99,9 +99,11 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         # initial_values = np.zeros((sum(N),)) 
 
         success = 0
-        a_data = np.cos(np.random.uniform(0, np.pi, (np.sum(N),)))
-        b_data = np.sin(np.random.uniform(0, np.pi, (np.sum(N),)))
-
+        length = np.random.uniform(0, 1, (np.sum(N),))
+        angle = np.pi * np.random.uniform(0, 2, (np.sum(N),))
+        a_data = np.sqrt(length) * np.cos(angle)
+        b_data = np.sqrt(length) * np.sin(angle)
+       
         ################## iterate through different inputs ##################
         # Change the orientation value? taking g=1 or sth
         # for g in radians:
