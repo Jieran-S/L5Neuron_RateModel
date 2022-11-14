@@ -10,7 +10,7 @@ and the hyperparameter tuning toolkit
 sim_number = 5
 # For parallel computing
 jobs_number = 4
-name_sim ='Debug_Hyperopt_First'
+name_sim = 'Stable_activity'
 update_function = 'version_normal'
 integrator = 'forward_euler'
 
@@ -90,7 +90,7 @@ steady_input = np.random.choice([0,1], size=(4,), replace=True)
 '''
 # Currently we kept all the same steady input
 steady_input = [1,1,1,1]
-amplitude = [5,4,10,5]
+amplitude = [6,4,10,5]
 
 # Hyperparameters for testing
 domain = np.linspace(0, 20, num= 100)
