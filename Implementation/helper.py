@@ -445,7 +445,7 @@ def find_weights(weights, N):
 
 
 
-def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
+def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, prob, MaxAct):
     '''
     Smean, Tvar, Svar, Avar: results from evaluation metic
     Activity: Activity matrix to calcualte the out-of-range distribution (with panelty)
@@ -472,8 +472,9 @@ def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
         Aor_rmsle = np.sqrt(np.mean(np.square(Aor[Aor > 0])))
 
     # mean euclidean distance, w_target need to be transposed as the row should mean post-syn neurons
+    eigenval = 2.959173309858104
     Smean_flat = Smean.reshape(Smean.shape[0],-1)
-    w_target_flat = w_target.T.flatten()
+    w_target_flat = (w_target*prob/eigenval).T.flatten()
     rmse = np.sqrt(np.mean(np.square(Smean_flat - w_target_flat)))
     
     return abs(100*rmse + Aor_rmsle - Reg_factor*(Avar_mean - Tvar_sum))

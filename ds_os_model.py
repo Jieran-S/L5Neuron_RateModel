@@ -80,14 +80,14 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                        [-0.19, -0.11, -0.18, -0.19]])
         w_intiial_CCCS = np.array([ [0.27, 0    ],
                                     [0.19, 0.24,]])
-        if p.learning_rule != 'None':
-            for i in range(2):
-                for j in range(2):
-                    w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.25)) 
-        # print(f"sim: {sim}:" )
-        # print(w_initial)
+        
+        for i in range(2):
+            for j in range(2):
+                w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.25)) 
+    
         # Generating an synaptic matrix that returns the synaptic connections
         W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
+        print(f'sim:{sim}, eigval:{max(np.linalg.eigvals(W_rec).real)}')
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
 
         # randomized weight beginning input
