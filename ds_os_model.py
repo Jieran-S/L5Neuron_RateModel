@@ -87,7 +87,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     
         # Generating an synaptic matrix that returns the synaptic connections
         W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
-        print(f'sim:{sim}, eigval:{max(np.linalg.eigvals(W_rec).real)}')
+        # print(f'sim:{sim}, eigval:{max(np.linalg.eigvals(W_rec).real)}')
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
 
         # randomized weight beginning input
@@ -220,11 +220,7 @@ def objective(params):
                 tau_threshold=p.tau_threshold,
                 evaluation_mode=False) 
     
-    (Tvar, Svar, Smean, Avar) = helper.sim_eva(weights=weights, activity= activity, N=p.N)
-    lossval = helper.lossfun(Tvar, Svar, Smean, Avar, 
-                                Activity= activity, 
-                                w_target=p.w_target, 
-                                MaxAct=p.Max_act)
+    lossval = helper.lossfun(weights=weights, Activity=activity, config=p, MaxAct=20)
     return lossval
 
 def stable_sim_objective(params): 
