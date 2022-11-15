@@ -35,7 +35,7 @@ tau_threshold = 1000
 
 ####### Network parameters #######
 learnlist = ['None','BCM','Slide_BCM']      #'Simple_test'
-learning_rule = learnlist[0]
+learning_rule = learnlist[1]
 excit_only = False
 
 # synaptic strength matrix of CS, CC, PV and SST neurons 

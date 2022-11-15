@@ -129,8 +129,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         
         # Slice the matrix within time scale to 1/2
         # Taking only the last tsteps information, not taking the tuning part in concern 
-        activity = np.asarray(activity)[-Sn.tsteps::2]
-        weights = np.asarray(weights)[-Sn.tsteps::2]
+        activity = np.asarray(activity)[-Sn.tsteps::5]
+        weights = np.asarray(weights)[-Sn.tsteps::5]
 
         # check nan
         if np.isnan(activity[-1]).all():
@@ -141,8 +141,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
         if evaluation_mode == True:
             # check equilibrium
-            a1 = activity[-100:-50, :]
-            a2 = activity[-50:, :]
+            a1 = activity[-50:-25, :]
+            a2 = activity[-25:, :]
             mean1 = np.mean(a1, axis=0)
             mean2 = np.mean(a2, axis=0)
             check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
@@ -175,8 +175,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         # plot randomly 2 simulation graph
         choice = np.random.choice(np.arange(sim), 2, replace=False)
         for isim in choice:
-            helper.plot_activity(activity, N, sim = isim, learningrule= learning_rule, Ttau = Ttau)
-            helper.plot_weights(weights, N, f'data/{DateFolder}', sim = isim, learningrule= learning_rule, Ttau= Ttau)
+            helper.plot_activity(activity, config=p, sim=isim)
+            helper.plot_weights(weights, config=p, sim=isim)
 
         # Evaluation metric 
         (Tvar, Svar, Smean, Avar) = helper.sim_eva(weights=weights, activity=activity, N=N)
