@@ -95,8 +95,8 @@ amplitude = [6,4,10,5]
 # Hyperparameters for testing
 domain = np.linspace(0, 20, num= 100)
 # amplitude = np.random.choice(domain, size=(4,), replace=True) 
-spatialF = 1
-temporalF = 1
+spatialF = 10
+temporalF = 50
 spatialPhase = 1
 
 # loss function parameter

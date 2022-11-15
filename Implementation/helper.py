@@ -416,6 +416,35 @@ def sim_eva(weights, activity, N):
     # Average over all simulations
     return (Tvar, Svar, Smean, Avar)
 
+## For purely debuging purpose
+def find_weights(weights, N):
+    def get_sim_weights(weights_vec):
+        weight_cs = weights_vec[:, :N[0], :]
+        weight_cc = weights_vec[:, sum(N[:1]):sum(N[:2]), :]
+        weight_pv = weights_vec[:, sum(N[:2]):sum(N[:3]), :]
+        weight_sst = weights_vec[:, sum(N[:3]):sum(N), :]
+        weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
+        weight_eva = np.empty((4,4))
+        for j, wei in enumerate(weights_vector):
+            wei = np.mean(wei[-10:, :, :], axis=0)
+            weight_eva[j, :] = [np.mean(wei[:, :N[0]]),
+                            np.mean(wei[:, sum(N[:1]):sum(N[:2])]),
+                            np.mean(wei[:, sum(N[:2]):sum(N[:3])]),
+                            np.mean(wei[:, sum(N[:3]):sum(N)]) ]
+        return weight_eva
+
+    if len(weights.shape) == 3:
+        return get_sim_weights(weights)
+    elif len(weights.shape) == 4: 
+        Smean = np.empty([weights.shape[0], 4, 4])
+        for sim in range(weights.shape[0]):
+            Smean[sim, :, :] = get_sim_weights(weights_vec=weights[sim])
+        return Smean 
+    else:
+        print('dimension wrong (must be 3d or 4d)')
+
+
+
 def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
     '''
     Smean, Tvar, Svar, Avar: results from evaluation metic
