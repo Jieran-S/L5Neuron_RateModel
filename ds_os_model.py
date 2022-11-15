@@ -247,7 +247,7 @@ def stable_sim_objective(params):
 
 if __name__ == "__main__":
     
-    # inputing all tunable parameters from the test.config
+    # inputing all tunable parameters from the test.config and first run and visualize
     (activity, weights, Sn) = run_simulation( Amplitude= p.amplitude,
                     Steady_input= p.steady_input,
                     spatialF=p.spatialF,
