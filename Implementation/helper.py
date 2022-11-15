@@ -6,7 +6,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from datetime import datetime
 import csv
-import configs.debug_config
 
 # remove top and right axis from plots
 mpl.rcParams["axes.spines.right"] = False
@@ -269,11 +268,14 @@ def calculate_selectivity(activity_popu):
 
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,os_paper_mean_data,os_paper_std_data)
 
-def plot_activity(activity, N,sim, learningrule, Ttau):
+def plot_activity(activity, config, sim, saving = False):
 
     '''
     activity: 3d matrix with infomraiton on the activation of different neurons
     '''
+    N = config.N
+    learningrule = config.learningrule
+    Ttau = config.Ttau
 
     if len(activity) == 0:
         return(0)
@@ -299,17 +301,23 @@ def plot_activity(activity, N,sim, learningrule, Ttau):
     DateFolder = now.strftime('%m_%d')
     if os.path.exists(f'data/{DateFolder}') == False:
         os.makedirs(f'data/{DateFolder}')
-    time_id = now.strftime("%m%d_%H:%M")
+        
+    if saving == True:
+        time_id = now.strftime("%m%d_%H:%M")
 
-    time_id = datetime.now().strftime("%m%d_%H:%M")
-    title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_act.png'
-    # fig.savefig(title_save)
+        time_id = datetime.now().strftime("%m%d_%H:%M")
+        title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_act.png'
+        fig.savefig(title_save)
 
-def plot_weights(weights, N, saving, sim, learningrule, Ttau):
+def plot_weights(weights, config, sim, saving = False ):
 
     '''
     weights: a 3D matrix (4D if all simulation taken into account): Tstep x N(post-syn) x N(pre-syn)
     '''
+    N = config.N
+    Ttau = config.Ttau
+    learningrule = config.learningrule
+
     weights = weights[sim]
     weight_cs = weights[:, :N[0], :]
     weight_cc = weights[:, sum(N[:1]):sum(N[:2]), :]
@@ -351,11 +359,12 @@ def plot_weights(weights, N, saving, sim, learningrule, Ttau):
     DateFolder = now.strftime('%m_%d')
     if os.path.exists(f'data/{DateFolder}') == False:
         os.makedirs(f'data/{DateFolder}')
-    time_id = now.strftime("%m%d_%H:%M")
 
-    time_id = datetime.now().strftime("%m%d_%H:%M")
-    title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_weight.png'
     if saving == True:
+        time_id = now.strftime("%m%d_%H:%M")
+
+        time_id = datetime.now().strftime("%m%d_%H:%M")
+        title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_weight.png'
         fig.savefig(title_save)
 
 def sim_eva(weights, activity, N):
@@ -443,9 +452,7 @@ def find_weights(weights, N):
     else:
         print('dimension wrong (must be 3d or 4d)')
 
-
-
-def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
+def lossfun(weights, Activity, config, MaxAct, eigval = 2.959173309858104):
     '''
     Smean, Tvar, Svar, Avar: results from evaluation metic
     Activity: Activity matrix to calcualte the out-of-range distribution (with panelty)
@@ -459,6 +466,7 @@ def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
     
     # average time variance over simulation and taking sum
     # Svar_sum = np.sum(np.mean(Svar, axis = 0))
+    (Tvar, Svar, Smean, Avar) = sim_eva(weights, Activity, config.N)
     Tvar_sum = np.sum(np.mean(Tvar, axis = 0))
     Avar_mean = np.mean(Avar) # Just take the average activity across differen type is enough
     Reg_factor = 0.1
@@ -473,7 +481,7 @@ def lossfun(Smean, Tvar, Svar, Avar, Activity, w_target, MaxAct):
 
     # mean euclidean distance, w_target need to be transposed as the row should mean post-syn neurons
     Smean_flat = Smean.reshape(Smean.shape[0],-1)
-    w_target_flat = w_target.T.flatten()
+    w_target_flat = (config.w_target*config.prob/eigval).T.flatten()
     rmse = np.sqrt(np.mean(np.square(Smean_flat - w_target_flat)))
     
     return abs(100*rmse + Aor_rmsle - Reg_factor*(Avar_mean - Tvar_sum))
@@ -482,8 +490,8 @@ def Stable_sim_loss(activity, Max_act = 20):
     '''
     evaluating the amount of capping happening in the curent situation
     '''
-    residual_value = activity.flatten() - Max_act
+    residual_value = np.array(activity.flatten() - Max_act)
     Total_Capped = len(residual_value > -0.01)
-    No_Neuron_Capped = np.sum(np.any(activity-Max_act>-0.01, axis = 1))
+    No_Neuron_Capped = np.sum(np.any(activity-Max_act > -0.01, axis = 1))
 
     return No_Neuron_Capped * Total_Capped

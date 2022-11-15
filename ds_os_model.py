@@ -80,14 +80,14 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                        [-0.19, -0.11, -0.18, -0.19]])
         w_intiial_CCCS = np.array([ [0.27, 0    ],
                                     [0.19, 0.24,]])
-        if p.learning_rule != 'None':
-            for i in range(2):
-                for j in range(2):
-                    w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.25)) 
-        # print(f"sim: {sim}:" )
-        # print(w_initial)
+        
+        for i in range(2):
+            for j in range(2):
+                w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.25)) 
+    
         # Generating an synaptic matrix that returns the synaptic connections
         W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
+        # print(f'sim:{sim}, eigval:{max(np.linalg.eigvals(W_rec).real)}')
         W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
 
         # randomized weight beginning input
@@ -129,8 +129,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         
         # Slice the matrix within time scale to 1/2
         # Taking only the last tsteps information, not taking the tuning part in concern 
-        activity = np.asarray(activity)[-Sn.tsteps::2]
-        weights = np.asarray(weights)[-Sn.tsteps::2]
+        activity = np.asarray(activity)[-Sn.tsteps::5]
+        weights = np.asarray(weights)[-Sn.tsteps::5]
 
         # check nan
         if np.isnan(activity[-1]).all():
@@ -141,8 +141,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
         if evaluation_mode == True:
             # check equilibrium
-            a1 = activity[-100:-50, :]
-            a2 = activity[-50:, :]
+            a1 = activity[-50:-25, :]
+            a2 = activity[-25:, :]
             mean1 = np.mean(a1, axis=0)
             mean2 = np.mean(a2, axis=0)
             check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
@@ -175,8 +175,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         # plot randomly 2 simulation graph
         choice = np.random.choice(np.arange(sim), 2, replace=False)
         for isim in choice:
-            helper.plot_activity(activity, N, sim = isim, learningrule= learning_rule, Ttau = Ttau)
-            helper.plot_weights(weights, N, f'data/{DateFolder}', sim = isim, learningrule= learning_rule, Ttau= Ttau)
+            helper.plot_activity(activity, config=p, sim=isim)
+            helper.plot_weights(weights, config=p, sim=isim)
 
         # Evaluation metric 
         (Tvar, Svar, Smean, Avar) = helper.sim_eva(weights=weights, activity=activity, N=N)
@@ -220,11 +220,7 @@ def objective(params):
                 tau_threshold=p.tau_threshold,
                 evaluation_mode=False) 
     
-    (Tvar, Svar, Smean, Avar) = helper.sim_eva(weights=weights, activity= activity, N=p.N)
-    lossval = helper.lossfun(Tvar, Svar, Smean, Avar, 
-                                Activity= activity, 
-                                w_target=p.w_target, 
-                                MaxAct=p.Max_act)
+    lossval = helper.lossfun(weights=weights, Activity=activity, config=p, MaxAct=20)
     return lossval
 
 def stable_sim_objective(params): 
@@ -251,7 +247,7 @@ def stable_sim_objective(params):
 
 if __name__ == "__main__":
     
-    # inputing all tunable parameters from the test.config
+    # inputing all tunable parameters from the test.config and first run and visualize
     (activity, weights, Sn) = run_simulation( Amplitude= p.amplitude,
                     Steady_input= p.steady_input,
                     spatialF=p.spatialF,

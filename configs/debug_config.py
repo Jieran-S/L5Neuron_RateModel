@@ -35,7 +35,7 @@ tau_threshold = 1000
 
 ####### Network parameters #######
 learnlist = ['None','BCM','Slide_BCM']      #'Simple_test'
-learning_rule = learnlist[0]
+learning_rule = learnlist[1]
 excit_only = False
 
 # synaptic strength matrix of CS, CC, PV and SST neurons 
@@ -90,7 +90,7 @@ steady_input = np.random.choice([0,1], size=(4,), replace=True)
 '''
 # Currently we kept all the same steady input
 steady_input = [1,1,1,1]
-amplitude = [6,4,10,5]
+amplitude = [6,5,10,5]
 
 # Hyperparameters for testing
 domain = np.linspace(0, 20, num= 100)
