@@ -292,7 +292,7 @@ if __name__ == "__main__":
         trails = hyperopt.Trials()
 
         # Start hyperparameter search
-        tpe_best = hyperopt.fmin(fn=objective, space=space, algo=algo_tpe, trials=trails, 
+        tpe_best = hyperopt.fmin(fn=stable_sim_objective, space=space, algo=algo_tpe, trials=trails, 
                         max_evals=2000)
 #%% Tuning results visualization
 
@@ -302,12 +302,19 @@ if __name__ == "__main__":
         print('\nBest input set: {}'.format(tpe_best)) 
 
         # Saving the results into a csv file: still have to see here
+        """
         tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
                                     'iteration': trails.idxs_vals[0]['cc'],
                                     'cs': trails.idxs_vals[1]['cs'],
                                     'cc': trails.idxs_vals[1]['cc'],
                                     'pv': trails.idxs_vals[1]['pv'],
                                     'sst': trails.idxs_vals[1]['sst'],}).fillna(method='ffill')
+        """
+        tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
+                                    'iteration': trails.idxs_vals[0]['tau'],
+                                    'tau': trails.idxs_vals[1]['tau'],
+                                    'tau_learn': trails.idxs_vals[1]['tau_learn'],
+                                    'tau_threshold': trails.idxs_vals[1]['tau_threshold'],}).fillna(method='ffill')
         # plot and visualize the value trace
         now = datetime.now() # current date and time
         DateFolder = now.strftime('%m_%d')
