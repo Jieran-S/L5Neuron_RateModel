@@ -289,7 +289,7 @@ if __name__ == "__main__":
 
         # Start hyperparameter search
         tpe_best = hyperopt.fmin(fn=stable_sim_objective, space=space, algo=algo_tpe, trials=trails, 
-                        max_evals=2000)
+                        max_evals=20)
 #%% Tuning results visualization
 
         # Printing out results
