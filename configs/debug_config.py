@@ -29,7 +29,7 @@ number_steps_before_learning = 2500
 #               and delta_t sufficiently small
 
 tau = 5
-Ttau = 35
+Ttau = 30
 tau_learn = 1300
 tau_threshold = 1000
 

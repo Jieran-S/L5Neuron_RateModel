@@ -274,10 +274,11 @@ if __name__ == "__main__":
             'sst':hyperopt.hp.uniform('sst', 0, 20)
         }
         '''
+        tau_threshold_var = hyperopt.hp.uniform('tau_threshold', 200, 1900)
         space = {
-            'tau': hyperopt.hp.uniform('tau', 0.5, 30),
-            'tau_learn': hyperopt.hp.uniform('tau_learn', 200, 2000),
-            'tau_threshold': hyperopt.hp.uniform('tau_threshold', 200, 1500),
+            'tau': hyperopt.hp.uniform('tau', 0.5, 20),
+            'tau_learn': hyperopt.hp.uniform('tau_learn', tau_threshold_var, 2000),
+            'tau_threshold': tau_threshold_var,
         }        
 
         # define algorithm
