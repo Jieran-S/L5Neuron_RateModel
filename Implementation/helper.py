@@ -274,7 +274,7 @@ def plot_activity(activity, config, sim, saving = False):
     activity: 3d matrix with infomraiton on the activation of different neurons
     '''
     N = config.N
-    learningrule = config.learningrule
+    learningrule = config.learning_rule
     Ttau = config.Ttau
 
     if len(activity) == 0:
@@ -316,7 +316,7 @@ def plot_weights(weights, config, sim, saving = False ):
     '''
     N = config.N
     Ttau = config.Ttau
-    learningrule = config.learningrule
+    learningrule = config.learning_rule
 
     weights = weights[sim]
     weight_cs = weights[:, :N[0], :]
