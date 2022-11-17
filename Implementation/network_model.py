@@ -120,8 +120,7 @@ class SimpleNetwork:
         all_act=[]
         all_act.append(start_activity)
         all_weights=[]
-        # all_weights.append(self.W_input)
-        all_weights.append(self.W_rec)
+        Latest_weight = self.W_rec
         
         inputs_time = self._check_input(inputs)
         for step in range(Ntotal):
@@ -129,15 +128,16 @@ class SimpleNetwork:
             new_act=self.integrator_function(self.update_act,  #intergation method
                               all_act[-1],  #general parameters     
                               delta_t=self.delta_t,
-                              tau=self.tau, w_rec= all_weights[-1] , w_input=self.W_input, #kwargs the input should be the same while keeping
+                              tau=self.tau, w_rec= Latest_weight , w_input=self.W_input, #kwargs the input should be the same while keeping
                               Input=inputs_time[step],            
                               nonlinearity=self.np_nonlinearity, )
-            all_act.append(new_act) # append new activity to use for learning
             
+            all_act.append(new_act) # append new activity to use for learning
+
             # check if the neuron get to the stationary point
             if step<self.number_steps_before_learning:# or not(step%100==0): # added not(step%100...)
                 # if not just use the current weight
-                new_weights = all_weights[-1]
+                new_weights = Latest_weight
             else:
                 # if reached, update the weight function with the weight function learning rule
                 new_weights = self.integrator_function(self.learningrule,   #learning rule
@@ -151,7 +151,12 @@ class SimpleNetwork:
                                          prev_act=all_act[-self.number_timepoints_plasticity:], 
                                          nonlinearity=self.np_nonlinearity,
                                          N = self.N, excit_only = self.excit_only)
-            all_weights.append(new_weights)
+            
+            # attach only every 1 in 5 weight matrix to save space
+            if step%5 == 0:
+                all_weights.append(new_weights)
+            Latest_weight = new_weights
+
         if simulate_till_converge == True: 
             # Adding convergence check for last 100 steps
             while self.check_convergence(activities=np.array(all_act)) != True: 
@@ -167,7 +172,7 @@ class SimpleNetwork:
                 new_act=self.integrator_function(self.update_act,  #intergation method
                                 all_act[-1],  #general parameters     
                                 delta_t=self.delta_t,
-                                tau=self.tau, w_rec= all_weights[-1] , 
+                                tau=self.tau, w_rec= Latest_weight,
                                 w_input=self.W_input, #kwargs the input should be the same while keeping
                                 Input=inputs_time[input_step],            
                                 nonlinearity=self.np_nonlinearity, )
@@ -185,13 +190,16 @@ class SimpleNetwork:
                                             prev_act=all_act[-self.number_timepoints_plasticity:], 
                                             nonlinearity=self.np_nonlinearity,
                                             N = self.N, excit_only = self.excit_only)
-                all_weights.append(new_weights)
+                if step%5 == 0:
+                    all_weights.append(new_weights)
+                Latest_weight = new_weights
+
                 if step >= int(Ntotal*2 - int(Ntotal%(2*np.pi)) - 1):
                     break
         
-        self.activity = all_act
+        self.activity = all_act[-Ntotal::5]
         self.weights = all_weights
-        return all_act, all_weights, step
+        return self.activity, self.weights, step
             
         
     def plot_activity(self, activity, sim, saving = False):

@@ -129,8 +129,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         
         # Slice the matrix within time scale to 1/2
         # Taking only the last tsteps information, not taking the tuning part in concern 
-        activity = np.asarray(activity)[-Sn.tsteps::5]
-        weights = np.asarray(weights)[-Sn.tsteps::5]
+        activity = np.asarray(activity)
+        weights = np.asarray(weights)
 
         # check nan
         if np.isnan(activity[-1]).all():
@@ -139,18 +139,18 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             # assign the value such that it is plotable
             activity[-1][np.isnan(activity[-1])] = 1 
 
-        if evaluation_mode == True:
+        # if evaluation_mode == True:
             # check equilibrium
-            a1 = activity[-50:-25, :]
-            a2 = activity[-25:, :]
-            mean1 = np.mean(a1, axis=0)
-            mean2 = np.mean(a2, axis=0)
-            check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
-            if check_eq > 0:
-                not_eq_counter += 1
-                print(f'Simulation {sim} not converged: {int(check_eq)} neurons, {steps} steps')
-            else: 
-                print(f'activity {sim} converges. {steps} steps')
+        a1 = activity[-50:-25, :]
+        a2 = activity[-25:, :]
+        mean1 = np.mean(a1, axis=0)
+        mean2 = np.mean(a2, axis=0)
+        check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
+        if check_eq > 0:
+            not_eq_counter += 1
+            print(f'Simulation {sim} not converged: {int(check_eq)} neurons, {steps} steps')
+        else: 
+            print(f'activity {sim} converges. {steps} steps')
 
         # print(f'weight shape: {weights.shape}, sim: {sim}')
         weights_data.append(weights)
@@ -274,10 +274,11 @@ if __name__ == "__main__":
             'sst':hyperopt.hp.uniform('sst', 0, 20)
         }
         '''
+
         space = {
-            'tau': hyperopt.hp.uniform('tau', 0.5, 30),
+            'tau': hyperopt.hp.uniform('tau', 0.5, 15),
+            'tau_threshold': hyperopt.hp.uniform('tau_threshold', 200, 1800),
             'tau_learn': hyperopt.hp.uniform('tau_learn', 200, 2000),
-            'tau_threshold': hyperopt.hp.uniform('tau_threshold', 200, 1500),
         }        
 
         # define algorithm
@@ -289,7 +290,7 @@ if __name__ == "__main__":
 
         # Start hyperparameter search
         tpe_best = hyperopt.fmin(fn=stable_sim_objective, space=space, algo=algo_tpe, trials=trails, 
-                        max_evals=20)
+                        max_evals=10)
 #%% Tuning results visualization
 
         # Printing out results
