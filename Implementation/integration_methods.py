@@ -24,7 +24,7 @@ def runge_kutta_explicit(fprime, x, **kwargs):
     x_new = x + delta_t*( (1./6.)*k1 + (1./3.)*k2 + (1./3.)*k3 + (1./6.)*k4 )
     # return x_new
     return np.clip(x_new, 0, None)
-
+ 
 
 def update_network(x, kwargs):
     '''

@@ -225,7 +225,7 @@ class SimpleNetwork:
         for ind, act in enumerate(activity_vec):
             axs = axes.flatten()[ind]
             for i in range(act.shape[1]):
-                axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.5)
+                axs.plot(np.arange(act.shape[0])*5, act[:,i],c='grey',alpha=0.5)
             axs.set_title(namelist[ind])
 
         fig.tight_layout(pad=2.0)
@@ -274,7 +274,7 @@ class SimpleNetwork:
             for ind,plotwei in enumerate([w_to_cs,w_to_cc, w_to_pv, w_to_sst]):
                 # Different cell numbers
                 for i in range(plotwei.shape[1]):
-                    axs.plot(np.linspace(0, Ttau, x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
+                    axs.plot(np.arange(x_length)*5, plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
             
             name = ['CS', 'CC', 'PV','SST']
             axs.set_title(f"postsyn(col):{name[j]}")
