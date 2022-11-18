@@ -17,8 +17,8 @@ integrator = 'forward_euler'
 # Simulation size config.
 # With this delta_t, 2500 can steadily converge the simluation before learning
 # Total steps: (Ttau*tau)/delta_t = 250/0.02 = 12500.0
-delta_t = 0.02
-number_steps_before_learning = 2500
+delta_t = 0.01
+number_steps_before_learning = 250
 
 # Learning rule hyperparameter
 # Ttau*tau: Total simulation duration
@@ -29,7 +29,7 @@ number_steps_before_learning = 2500
 #               and delta_t sufficiently small
 
 tau = 0.1
-Ttau = 1500
+Ttau = 150
 tau_learn = 1300
 tau_threshold = 1000
 
