@@ -28,8 +28,8 @@ number_steps_before_learning = 2500
 # Relationship: Tau > Tau_threshold > Tau_learn (?Threshold updating quicker?), 
 #               and delta_t sufficiently small
 
-tau = 5
-Ttau = 30
+tau = 0.1
+Ttau = 1500
 tau_learn = 1300
 tau_threshold = 1000
 

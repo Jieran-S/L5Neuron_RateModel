@@ -224,7 +224,7 @@ def objective(params):
     return lossval
 
 def stable_sim_objective(params): 
-    tau, tau_learn, tau_threshold = params['tau'], params['tau_learn'], params['tau_threshold']
+    tau_learn, tau_threshold_fac =  params['tau_learn'], params['tau_threshold_fac']
     (activity, _, _) = run_simulation( 
                 Amplitude= p.amplitude,
                 Steady_input= p.steady_input,
@@ -234,9 +234,9 @@ def stable_sim_objective(params):
                 learning_rule= p.learning_rule, 
                 number_steps_before_learning =p.number_steps_before_learning, 
                 Ttau =p.Ttau,
-                tau = tau, 
+                tau = p.tau, 
                 tau_learn = tau_learn, 
-                tau_threshold=tau_threshold,
+                tau_threshold=tau_threshold_fac*tau_learn,
                 evaluation_mode=False) 
     
     lossval = helper.Stable_sim_loss(activity=activity, Max_act=20)
@@ -276,9 +276,8 @@ if __name__ == "__main__":
         '''
 
         space = {
-            'tau': hyperopt.hp.uniform('tau', 0.5, 15),
-            'tau_threshold': hyperopt.hp.uniform('tau_threshold', 200, 1800),
-            'tau_learn': hyperopt.hp.uniform('tau_learn', 200, 2000),
+            'tau_learn': hyperopt.hp.uniform('tau_learn', 1, 1000),
+            'tau_threshold_fac': hyperopt.hp.uniform('tau_threshold_fac', 0.001, 1),
         }        
 
         # define algorithm
@@ -290,12 +289,13 @@ if __name__ == "__main__":
 
         # Start hyperparameter search
         tpe_best = hyperopt.fmin(fn=stable_sim_objective, space=space, algo=algo_tpe, trials=trails, 
-                        max_evals=10)
+                        max_evals=20)
 #%% Tuning results visualization
 
         # Printing out results
         print('Minimum loss attained with TPE:    {:.4f}'.format(trails.best_trial['result']['loss']))
-        print('\nNumber of trials needed to attain minimum with TPE:    {}'.format(trails.best_trial['misc']['idxs']['cc'][0]))
+        print('\nNumber of trials needed to attain minimum with TPE: {}'
+                    .format(trails.best_trial['misc']['idxs']['tau_learn'][0]))
         print('\nBest input set: {}'.format(tpe_best)) 
 
         # Saving the results into a csv file: still have to see here
@@ -308,10 +308,9 @@ if __name__ == "__main__":
                                     'sst': trails.idxs_vals[1]['sst'],}).fillna(method='ffill')
         """
         tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
-                                    'iteration': trails.idxs_vals[0]['tau'],
-                                    'tau': trails.idxs_vals[1]['tau'],
+                                    'iteration': trails.idxs_vals[0]['tau_learn'],
                                     'tau_learn': trails.idxs_vals[1]['tau_learn'],
-                                    'tau_threshold': trails.idxs_vals[1]['tau_threshold'],}).fillna(method='ffill')
+                                    'tau_threshold': trails.idxs_vals[1]['tau_threshold_fac'],}).fillna(method='ffill')
         # plot and visualize the value trace
         now = datetime.now() # current date and time
         DateFolder = now.strftime('%m_%d')
@@ -330,17 +329,26 @@ if __name__ == "__main__":
 
 
         # put the best parameter back and see the results
-        Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
-        run_simulation( Amplitude= Best_amplitude,
-                        Steady_input= p.steady_input,
-                        spatialF=p.spatialF,
-                        temporalF=p.temporalF,
-                        spatialPhase=p.spatialPhase,
-                        learning_rule= p.learning_rule, 
-                        number_steps_before_learning =p.number_steps_before_learning, 
-                        Ttau =p.Ttau,
-                        evaluation_mode=True)
-
+        # Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
+        (Best_act, Best_weight, _ )= run_simulation( 
+                Amplitude= p.amplitude,
+                Steady_input= p.steady_input,
+                spatialF=p.spatialF,
+                temporalF=p.temporalF,
+                spatialPhase=p.spatialPhase,
+                learning_rule= p.learning_rule, 
+                number_steps_before_learning =p.number_steps_before_learning, 
+                Ttau =p.Ttau,
+                tau = p.tau, 
+                tau_learn = tpe_best["tau_learn"], 
+                tau_threshold=tpe_best["tau_threshold_fac"]*tpe_best["tau_learn"],
+                evaluation_mode=False) 
+        
+        #Saving the data after running
+        with open(f'data/{DateFolder}/Tuning_Tau_Activity_weight.npy', 'wb') as f:
+            np.save(f, Best_act)
+            np.save(f, Best_weight)
+        
     # Spearmint attempt
 
     """
