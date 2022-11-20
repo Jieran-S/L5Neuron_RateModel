@@ -153,7 +153,7 @@ class SimpleNetwork:
                                          N = self.N, excit_only = self.excit_only)
             
             # attach only every 1 in 5 weight matrix to save space
-            if step%5 == 0:
+            if step%1 == 0:
                 all_weights.append(new_weights)
             Latest_weight = new_weights
 
@@ -190,15 +190,15 @@ class SimpleNetwork:
                                             prev_act=all_act[-self.number_timepoints_plasticity:], 
                                             nonlinearity=self.np_nonlinearity,
                                             N = self.N, excit_only = self.excit_only)
-                if step%5 == 0:
+                if step%1 == 0:
                     all_weights.append(new_weights)
                 Latest_weight = new_weights
 
                 if step >= int(Ntotal*2 - int(Ntotal%(2*np.pi)) - 1):
                     break
         
-        self.activity = all_act[-Ntotal::5]
-        self.weights = all_weights
+        self.activity = all_act[-Ntotal:]
+        self.weights = all_weights[-Ntotal:]
         return self.activity, self.weights, step
             
         
@@ -225,7 +225,8 @@ class SimpleNetwork:
         for ind, act in enumerate(activity_vec):
             axs = axes.flatten()[ind]
             for i in range(act.shape[1]):
-                axs.plot(np.arange(act.shape[0])*5, act[:,i],c='grey',alpha=0.5)
+                axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.5)
+                # axs.plot(np.arange(act.shape[0])*5, act[:,i],c='grey',alpha=0.5)
             axs.set_title(namelist[ind])
 
         fig.tight_layout(pad=2.0)
@@ -274,8 +275,9 @@ class SimpleNetwork:
             for ind,plotwei in enumerate([w_to_cs,w_to_cc, w_to_pv, w_to_sst]):
                 # Different cell numbers
                 for i in range(plotwei.shape[1]):
-                    axs.plot(np.arange(x_length)*5, plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
-            
+                    # axs.plot(np.arange(x_length)*5, plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
+                    axs.plot(np.linspace(0, Ttau, x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
+ 
             name = ['CS', 'CC', 'PV','SST']
             axs.set_title(f"postsyn(col):{name[j]}")
         
