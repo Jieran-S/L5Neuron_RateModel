@@ -29,9 +29,9 @@ number_steps_before_learning = 250
 #               and delta_t sufficiently small
 
 tau = 0.1
-Ttau = 150
-tau_learn = 1300
-tau_threshold = 1000
+Ttau = 100
+tau_learn = 1963.0376975536815
+tau_threshold = 2.7922382927606537
 
 ####### Network parameters #######
 learnlist = ['None','BCM','Slide_BCM']      #'Simple_test'

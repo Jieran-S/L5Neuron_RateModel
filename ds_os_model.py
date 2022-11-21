@@ -139,18 +139,18 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             # assign the value such that it is plotable
             activity[-1][np.isnan(activity[-1])] = 1 
 
-        # if evaluation_mode == True:
+        if evaluation_mode == True:
             # check equilibrium
-        a1 = activity[-50:-25, :]
-        a2 = activity[-25:, :]
-        mean1 = np.mean(a1, axis=0)
-        mean2 = np.mean(a2, axis=0)
-        check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
-        if check_eq > 0:
-            not_eq_counter += 1
-            print(f'Simulation {sim} not converged: {int(check_eq)} neurons, {steps} steps')
-        else: 
-            print(f'activity {sim} converges. {steps} steps')
+            a1 = activity[-50:-25, :]
+            a2 = activity[-25:, :]
+            mean1 = np.mean(a1, axis=0)
+            mean2 = np.mean(a2, axis=0)
+            check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
+            if check_eq > 0:
+                not_eq_counter += 1
+                print(f'Simulation {sim} not converged: {int(check_eq)} neurons, {steps} steps')
+            else: 
+                print(f'activity {sim} converges. {steps} steps')
 
         # print(f'weight shape: {weights.shape}, sim: {sim}')
         weights_data.append(weights)
@@ -276,7 +276,7 @@ if __name__ == "__main__":
         '''
 
         space = {
-            'tau_learn': hyperopt.hp.uniform('tau_learn', 1, 1000),
+            'tau_learn': hyperopt.hp.uniform('tau_learn', 1000, 2000),
             'tau_threshold_fac': hyperopt.hp.uniform('tau_threshold_fac', 0.001, 1),
         }        
 
