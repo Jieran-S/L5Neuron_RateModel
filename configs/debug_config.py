@@ -29,9 +29,9 @@ number_steps_before_learning = 250
 #               and delta_t sufficiently small
 
 tau = 0.1
-Ttau = 100
-tau_learn = 1963.0376975536815
-tau_threshold = 2.7922382927606537
+Ttau = 150
+tau_learn = 1997.467    # 1963.0376975536815
+tau_threshold = 2.1     # 2.7922382927606537
 
 ####### Network parameters #######
 learnlist = ['None','BCM','Slide_BCM']      #'Simple_test'
@@ -65,6 +65,12 @@ w_target = np.array( [[0.27, 0, 1.01, 0.05],
                        [-0.32, -0.52, -0.47, -0.44],
                        [-0.19, -0.11, -0.18, -0.19]])
 
+W_compare = np.array([  [ 0.01459867,  0.        ,  0.06143608,  0.00388622],
+                        [ 0.00577864,  0.00486622,  0.03568564,  0.00790761],
+                        [-0.04649947, -0.06677541, -0.07941407, -0.02081662],
+                        [-0.0333877 , -0.00483243, -0.01764006, -0.00642071]])
+
+
 # Campognola 2022 PSP amplitude: https://www.science.org/doi/epdf/10.1126/science.abj5861 
 # connection probability matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
 prob = np.array([[0.16, 0, 0.18, 0.23],
@@ -89,7 +95,7 @@ degree = 0
 steady_input = np.random.choice([0,1], size=(4,), replace=True)
 '''
 # Currently we kept all the same steady input
-steady_input = [1,1,1,1]
+steady_input = [0,0,0,0] #[1,1,1,1]
 amplitude = [6,5,10,5]
 
 # Hyperparameters for testing
