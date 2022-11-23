@@ -269,10 +269,10 @@ def calculate_selectivity(activity_popu):
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,os_paper_mean_data,os_paper_std_data)
 
 def plot_activity(activity, config, sim, saving = False):
-
     '''
     activity: 3d matrix with infomraiton on the activation of different neurons
     '''
+
     N = config.N
     learningrule = config.learning_rule
     Ttau = config.Ttau
@@ -292,8 +292,14 @@ def plot_activity(activity, config, sim, saving = False):
     for ind, act in enumerate(activity_vec):
         axs = axes.flatten()[ind]
         for i in range(act.shape[1]):
+            n = 25
             # axs.plot(np.arange(act.shape[0])*5, act[:,i],c='grey',alpha=0.5)
-            axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.5)
+            axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.3)
+
+        for i in range(act.shape[1]):
+            mean_act = np.average(act[:,i].reshape(-1, n), axis=1)
+            axs.plot(np.linspace(0, Ttau, act.shape[0]), np.repeat(mean_act, n),c='orange',alpha=0.8)
+
         axs.set_title(namelist[ind])
 
     fig.tight_layout(pad=2.0)
@@ -322,37 +328,47 @@ def plot_weights(weights, config, sim, saving = False ):
     weights = weights[sim]
     weight_cs = weights[:, :N[0], :]
     weight_cc = weights[:, sum(N[:1]):sum(N[:2]), :]
-    weight_pv = weights[:, sum(N[:2]):sum(N[:3]), :]
-    weight_sst = weights[:, sum(N[:3]):sum(N), :]
-    weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
+    # weight_pv = weights[:, sum(N[:2]):sum(N[:3]), :]
+    # weight_sst = weights[:, sum(N[:3]):sum(N), :]
+    weights_vector = [weight_cs, weight_cc] #, weight_pv, weight_sst]
 
-    fig, axes = plt.subplots(2,2)
+    fig, axes = plt.subplots(1,2)
     for j,wei in enumerate(weights_vector):
         # return the average weight from one cell to a specific responses
         w_to_cs = np.mean(wei[:, :, :N[0]], axis=-1)
         w_to_cc = np.mean(wei[:, :, sum(N[:1]):sum(N[:2])], axis= -1 )
-        w_to_pv = np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis= -1 )
-        w_to_sst = np.mean(wei[:, :, sum(N[:3]):sum(N)], axis= -1 )
+        # w_to_pv = np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis= -1 )
+        # w_to_sst = np.mean(wei[:, :, sum(N[:3]):sum(N)], axis= -1 )
+       
         x_length = w_to_cc.shape[0]
         # see full colortable: https://matplotlib.org/3.1.0/gallery/color/named_colors.html
         color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
         label_list = ['cs pre', 'cc pre', 'pv pre', 'sst pre']
+        
         # Specify the graph
         axs = axes.flatten()[j]
+        
         # Different weight type
-        for ind,plotwei in enumerate([w_to_cs,w_to_cc, w_to_pv, w_to_sst]):
+        for ind,plotwei in enumerate([w_to_cs,w_to_cc]): #, w_to_pv, w_to_sst]):
             # Different cell numbers
             for i in range(plotwei.shape[1]):
                 # axs.plot(np.arange(x_length)*5, plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
-                axs.plot(np.linspace(0, Ttau, x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
+                axs.plot(np.linspace(0, Ttau, x_length), 
+                         plotwei[:, i], 
+                         c = color_list[ind], 
+                         label = label_list[ind], 
+                         alpha = 0.5)
         
-        name = ['CS', 'CC', 'PV','SST']
+        name = ['CS', 'CC'] #, 'PV','SST']
         axs.set_title(f"postsyn(col):{name[j]}")
     
     # Set legend content and location
     handles, labels = axs.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    fig.legend(by_label.values(), by_label.keys(),loc = 'lower center', ncol = 4, bbox_to_anchor=(0.5, 0))
+    fig.legend( by_label.values(), 
+                by_label.keys(),
+                loc = 'lower center', 
+                ncol = 4, bbox_to_anchor=(0.5, 0))
 
     #save graph
     fig.tight_layout(pad=2.0)
@@ -427,7 +443,7 @@ def sim_eva(weights, activity, N):
     # Average over all simulations
     return (Tvar, Svar, Smean, Avar)
 
-## For purely debuging purpose
+# For purely debuging purpose
 def find_weights(weights, N):
     def get_sim_weights(weights_vec):
         weight_cs = weights_vec[:, :N[0], :]

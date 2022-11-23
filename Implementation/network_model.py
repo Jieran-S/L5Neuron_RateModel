@@ -107,13 +107,21 @@ class SimpleNetwork:
         return inputs_time
 
     def check_convergence(self, activities):
-        a1 = activities[-100:-50, :]
-        a2 = activities[-50:, :]
-        mean1 = np.mean(a1, axis=0)
-        mean2 = np.mean(a2, axis=0)
-        check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(self.W_rec.shape[0]), 1))
-        if check_eq < int(self.W_rec.shape[0]* 0.1):
-            return True
+        #evaluating only the mean value for the activity
+        if activities.shape[0]%25 !=0:
+            return False
+        else:
+            activities = np.mean(activities.reshape(-1,25, activities.shape[1]), axis = 1)
+
+            a1 = activities[-20:-10, :]
+            a2 = activities[-10:, :]
+            mean1 = np.mean(a1, axis=0)
+            mean2 = np.mean(a2, axis=0)
+            check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(self.W_rec.shape[0]), 1))
+            if check_eq < int(self.W_rec.shape[0]* 0.1):
+                return True
+            else:
+                return False
             
     def run(self, inputs, start_activity, simulate_till_converge):
         Ntotal = self.tsteps
@@ -160,14 +168,15 @@ class SimpleNetwork:
         if simulate_till_converge == True: 
             # Adding convergence check for last 100 steps
             while self.check_convergence(activities=np.array(all_act)) != True: 
-                step = step+1
                 '''
                 Remark: For steady input, we can just reuse the previous input.
                 But for moving input related to t, we need to find the timing for the cycle to match the smooth transition 
                 np.cos(temporalF * t) -> Find the position for np.cos(temporalF * step)
                 Closest number: remainder of step divided by 2 pi
                 '''
-                input_step = int(Ntotal%(2*np.pi)) + step - Ntotal
+                step = step+1
+                input_step = 10 + step - Ntotal
+                # int(Ntotal%(2*np.pi)) + step - Ntotal
                 
                 new_act=self.integrator_function(self.update_act,  #intergation method
                                 all_act[-1],  #general parameters     
@@ -194,11 +203,12 @@ class SimpleNetwork:
                     all_weights.append(new_weights)
                 Latest_weight = new_weights
 
-                if step >= int(Ntotal*2 - int(Ntotal%(2*np.pi)) - 1):
+                if step >= int(Ntotal*2 - 10): # int(Ntotal%(2*np.pi)) - 1):
                     break
         
         self.activity = all_act[-Ntotal:]
         self.weights = all_weights[-Ntotal:]
+        self.step = step
         return self.activity, self.weights, step
             
         
@@ -209,6 +219,7 @@ class SimpleNetwork:
         N = self.N
         Ttau = self.Ttau
         learningrule = self.learning_rule
+        step = self.step
 
         if len(activity) == 0:
             return(0)
@@ -225,8 +236,15 @@ class SimpleNetwork:
         for ind, act in enumerate(activity_vec):
             axs = axes.flatten()[ind]
             for i in range(act.shape[1]):
-                axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.5)
+                n = 25
                 # axs.plot(np.arange(act.shape[0])*5, act[:,i],c='grey',alpha=0.5)
+                axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.3)
+
+            for i in range(act.shape[1]):
+                mean_act = np.average(act[:,i].reshape(-1, n), axis=1)
+                axs.plot(np.linspace(0, Ttau, act.shape[0]), np.repeat(mean_act, n),c='orange',alpha=0.8)
+            LearningTime = (self.number_steps_before_learning - (self.step+1- self.tsteps))*self.delta_t/self.tau
+            axs.axvline( x= LearningTime,linewidth=2, color='green')
             axs.set_title(namelist[ind])
 
         fig.tight_layout(pad=2.0)
@@ -235,13 +253,14 @@ class SimpleNetwork:
         DateFolder = now.strftime('%m_%d')
         if os.path.exists(f'data/{DateFolder}') == False:
             os.makedirs(f'data/{DateFolder}')
-        time_id = now.strftime("%m%d_%H:%M")
-
-        time_id = datetime.now().strftime("%m%d_%H:%M")
-        title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_act.png'
+            
         if saving == True:
-            fig.savefig(title_save)   
-        
+            time_id = now.strftime("%m%d_%H:%M")
+
+            time_id = datetime.now().strftime("%m%d_%H:%M")
+            title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_act.png'
+            fig.savefig(title_save)
+            
     def plot_weights(self, weights, sim, saving = False):
 
         '''
@@ -254,37 +273,56 @@ class SimpleNetwork:
         weights = weights[sim]
         weight_cs = weights[:, :N[0], :]
         weight_cc = weights[:, sum(N[:1]):sum(N[:2]), :]
-        weight_pv = weights[:, sum(N[:2]):sum(N[:3]), :]
-        weight_sst = weights[:, sum(N[:3]):sum(N), :]
-        weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
+        # weight_pv = weights[:, sum(N[:2]):sum(N[:3]), :]
+        # weight_sst = weights[:, sum(N[:3]):sum(N), :]
+        weights_vector = [weight_cs, weight_cc] #, weight_pv, weight_sst]
+        Target_weight = np.array([  [ 0.01459867,  0.        ,  0.06143608,  0.00388622],
+                                    [ 0.00577864,  0.00486622,  0.03568564,  0.00790761],
+                                    [-0.04649947, -0.06677541, -0.07941407, -0.02081662],
+                                    [-0.0333877 , -0.00483243, -0.01764006, -0.00642071]])
+        Wref_col = [ 'dodgerblue','deeppink','saddlebrown','black']
 
-        fig, axes = plt.subplots(2,2)
+        fig, axes = plt.subplots(1,2)
         for j,wei in enumerate(weights_vector):
             # return the average weight from one cell to a specific responses
             w_to_cs = np.mean(wei[:, :, :N[0]], axis=-1)
             w_to_cc = np.mean(wei[:, :, sum(N[:1]):sum(N[:2])], axis= -1 )
-            w_to_pv = np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis= -1 )
-            w_to_sst = np.mean(wei[:, :, sum(N[:3]):sum(N)], axis= -1 )
+            # w_to_pv = np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis= -1 )
+            # w_to_sst = np.mean(wei[:, :, sum(N[:3]):sum(N)], axis= -1 )
+        
             x_length = w_to_cc.shape[0]
             # see full colortable: https://matplotlib.org/3.1.0/gallery/color/named_colors.html
             color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
             label_list = ['cs pre', 'cc pre', 'pv pre', 'sst pre']
+            
             # Specify the graph
             axs = axes.flatten()[j]
+            
             # Different weight type
-            for ind,plotwei in enumerate([w_to_cs,w_to_cc, w_to_pv, w_to_sst]):
+            for ind,plotwei in enumerate([w_to_cs,w_to_cc]): #, w_to_pv, w_to_sst]):
                 # Different cell numbers
                 for i in range(plotwei.shape[1]):
                     # axs.plot(np.arange(x_length)*5, plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
-                    axs.plot(np.linspace(0, Ttau, x_length), plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
- 
+                    axs.plot(np.linspace(0, Ttau, x_length), 
+                            plotwei[:, i], 
+                            c = color_list[ind], 
+                            label = label_list[ind], 
+                            alpha = 0.5)
+                axs.axhline(y = Target_weight[ind, j], linewidth=2, color=Wref_col[ind])
+            
             name = ['CS', 'CC', 'PV','SST']
+            LearningTime = max((self.number_steps_before_learning - (self.step+1- self.tsteps))*self.delta_t/self.tau, 
+                                0)
+            axs.axvline( x= LearningTime,linewidth=2, color='green')
             axs.set_title(f"postsyn(col):{name[j]}")
         
         # Set legend content and location
         handles, labels = axs.get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
-        fig.legend(by_label.values(), by_label.keys(),loc = 'lower center', ncol = 4, bbox_to_anchor=(0.5, 0))
+        fig.legend( by_label.values(), 
+                    by_label.keys(),
+                    loc = 'lower center', 
+                    ncol = 4, bbox_to_anchor=(0.5, 0))
 
         #save graph
         fig.tight_layout(pad=2.0)
@@ -293,9 +331,10 @@ class SimpleNetwork:
         DateFolder = now.strftime('%m_%d')
         if os.path.exists(f'data/{DateFolder}') == False:
             os.makedirs(f'data/{DateFolder}')
-        time_id = now.strftime("%m%d_%H:%M")
 
-        time_id = datetime.now().strftime("%m%d_%H:%M")
-        title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_weight.png'
         if saving == True:
+            time_id = now.strftime("%m%d_%H:%M")
+
+            time_id = datetime.now().strftime("%m%d_%H:%M")
+            title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_weight.png'
             fig.savefig(title_save)
