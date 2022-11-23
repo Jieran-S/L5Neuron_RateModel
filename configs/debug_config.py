@@ -18,7 +18,7 @@ integrator = 'forward_euler'
 # With this delta_t, 2500 can steadily converge the simluation before learning
 # Total steps: (Ttau*tau)/delta_t = 250/0.02 = 12500.0
 delta_t = 0.01
-number_steps_before_learning = 250
+number_steps_before_learning = 500
 
 # Learning rule hyperparameter
 # Ttau*tau: Total simulation duration
@@ -29,7 +29,7 @@ number_steps_before_learning = 250
 #               and delta_t sufficiently small
 
 tau = 0.1
-Ttau = 150
+Ttau = 250
 tau_learn = 1997.467    # 1963.0376975536815
 tau_threshold = 2.1     # 2.7922382927606537
 
@@ -60,6 +60,7 @@ for i in range(2):
     for j in range(2):
         w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.25)) 
 
+# Row: pre-syn; Col: post-syn
 w_target = np.array( [[0.27, 0, 1.01, 0.05],
                        [0.19, 0.24, 0.48, 0.09],
                        [-0.32, -0.52, -0.47, -0.44],
@@ -102,6 +103,11 @@ amplitude = [6,5,10,5]
 domain = np.linspace(0, 20, num= 100)
 # amplitude = np.random.choice(domain, size=(4,), replace=True) 
 spatialF = 10
+# If change temporalF, need to change:
+# convergence check method, 
+# mean for plotting peroid, 
+# convergence input_step, 
+# break condition for step limit
 temporalF = 50
 spatialPhase = 1
 

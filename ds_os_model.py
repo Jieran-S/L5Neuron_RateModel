@@ -173,12 +173,18 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         csvtitle = f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}.csv'
 
         # plot randomly 2 simulation graph
-        choice = np.random.choice(np.arange(sim), 2, replace=False)
-        for isim in choice:
-            helper.plot_activity(activity, config=p, sim=isim)
-            helper.plot_weights(weights, config=p, sim=isim)
-
-        # Evaluation metric 
+        if p.sim_number <6:
+            for isim in range(p.sim_number):
+                Sn.plot_activity(activity=activity, sim=isim, saving=False)
+                Sn.plot_weights(weights=weights, sim=isim, saving=False)
+        else:
+            choice = np.random.choice(np.arange(p.sim_number), 2, replace=False)
+            for isim in choice:
+                #helper.plot_activity(activity, config=p, sim=isim)
+                #helper.plot_weights(weights, config=p, sim=isim)
+                Sn.plot_activity(activity=activity, sim=isim, saving=False)
+                Sn.plot_weights(weights=weights, sim=isim, saving=False)
+            # Evaluation metric 
         (Tvar, Svar, Smean, Avar) = helper.sim_eva(weights=weights, activity=activity, N=N)
 
         # foming csv files
