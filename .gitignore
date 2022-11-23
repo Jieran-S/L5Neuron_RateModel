@@ -26,3 +26,4 @@ configs/__pycache__/test_config.cpython-39.pyc
 *.pyc
 configs/__pycache__/test_config.cpython-39.pyc
 *.pkl
+*.npy
