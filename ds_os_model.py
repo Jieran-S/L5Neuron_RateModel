@@ -83,7 +83,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         
         for i in range(2):
             for j in range(2):
-                w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.25)) 
+                w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.1*w_intiial_CCCS[i,j])) 
     
         # Generating an synaptic matrix that returns the synaptic connections
         W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
@@ -112,12 +112,14 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
                                 integrator=p.integrator, delta_t=p.delta_t, number_steps_before_learning = number_steps_before_learning, 
                                 update_function=p.update_function, learning_rule=learning_rule,
-                                gamma=p.gamma, N = p.N, excit_only= p.excit_only, 
+                                gamma=p.gamma, N = p.N, 
+                                neurons= p.neurons, 
                                 #parameters to tune
                                 tau=tau, 
                                 Ttau=Ttau, 
                                 tau_learn=tau_learn, 
-                                tau_threshold=tau_threshold,)
+                                tau_threshold=tau_threshold,
+                                phase_list=p.phase_list)
         # define inputs
         inputs = helper.distributionInput_negative(a_data=a_data, b_data=b_data,
                                     spatialF=spatialF, temporalF=temporalF, orientation=g,

@@ -34,13 +34,18 @@ tau_learn = 1997.467    # 1963.0376975536815
 tau_threshold = 2.1     # 2.7922382927606537
 
 ####### Network parameters #######
-learnlist = ['None','BCM','Slide_BCM']      #'Simple_test'
-learning_rule = learnlist[2]
-excit_only = True
+# Training rule specification
+rule_list = ['None','BCM','Slide_BCM']      #'Simple_test'
+learning_rule = rule_list[2]
 
-# synaptic strength matrix of CS, CC, PV and SST neurons 
-# (rows are the presyn cell)
-# Campognola 2022 PSP amplitude
+# Training neuron specification
+neurons_list = ['excit_only', 'inhibit_only', 'all']
+neurons = neurons_list[0]
+
+# Training pattern specification:
+# phase_list = np.array([1,2])    # placeholder without training
+phase_list =  np.repeat(['CS','CC','Rest'], 10)     #specific pattern
+
 
 '''
 # Change the weight into random input
@@ -60,6 +65,9 @@ for i in range(2):
     for j in range(2):
         w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.25)) 
 
+# synaptic strength matrix of CS, CC, PV and SST neurons 
+# (rows are the presyn cell)
+# Campognola 2022 PSP amplitude
 # Row: pre-syn; Col: post-syn
 w_target = np.array( [[0.27, 0, 1.01, 0.05],
                        [0.19, 0.24, 0.48, 0.09],

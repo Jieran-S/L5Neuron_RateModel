@@ -28,7 +28,8 @@ class SimpleNetwork:
                 gamma=1,
                 W_structure=None,
                 N = np.array([45, 275, 46, 34]),
-                excit_only = True):
+                neurons = 'excit_only',
+                phase_list = np.repeat(['CS','CC','Rest'], 10) ):
         self.W_rec =W_rec
         self.W_input=W_project
         if W_structure is not None:
@@ -43,7 +44,8 @@ class SimpleNetwork:
         self.tau_learn=tau_learn
         self.tau_threshold=tau_threshold
         self.N = N
-        self.excit_only = excit_only
+        self.neurons = neurons
+        self.phase_list = phase_list
 
         # Tuning: Plotting and simulation parameter. Controlling tsteps = 2000 and learning_step = 250
         self.tsteps=int((Ttau*tau)/delta_t)
@@ -147,18 +149,25 @@ class SimpleNetwork:
                 # if not just use the current weight
                 new_weights = Latest_weight
             else:
-                # if reached, update the weight function with the weight function learning rule
-                new_weights = self.integrator_function(self.learningrule,   #learning rule
-                                         all_weights[-1], #general parameters 
-                                         delta_t=self.delta_t, #kwargs
-                                         tau=self.tau, tau_learn=self.tau_learn, 
-                                         tau_threshold=self.tau_threshold,
-                                         w_rec=self.W_rec , w_input=self.W_input,
-                                         w_struct_mask=self.W_structure,
-                                         Input=inputs_time[step], 
-                                         prev_act=all_act[-self.number_timepoints_plasticity:], 
-                                         nonlinearity=self.np_nonlinearity,
-                                         N = self.N, excit_only = self.excit_only)
+                train_mode = self.phase_list[step%len(self.phase_list)]
+                if train_mode == "Rest":
+                    # if the system is resting, no training is happening
+                    new_weights = Latest_weight
+                else:
+                    # Either training CC or CS repeatedly
+                    new_weights = self.integrator_function(self.learningrule,   #learning rule
+                                            all_weights[-1], #general parameters 
+                                            delta_t=self.delta_t, #kwargs
+                                            tau=self.tau, tau_learn=self.tau_learn, 
+                                            tau_threshold=self.tau_threshold,
+                                            w_rec=self.W_rec , w_input=self.W_input,
+                                            w_struct_mask=self.W_structure,
+                                            Input=inputs_time[step], 
+                                            prev_act=all_act[-self.number_timepoints_plasticity:], 
+                                            nonlinearity=self.np_nonlinearity,
+                                            N = self.N, 
+                                            neurons = self.neurons,
+                                            train_mode = train_mode)
             
             # attach only every 1 in 5 weight matrix to save space
             if step%1 == 0:
@@ -187,18 +196,25 @@ class SimpleNetwork:
                                 nonlinearity=self.np_nonlinearity, )
                 all_act.append(new_act) # append new activity to use for learning
                 
-                # if reached, update the weight function with the weight function learning rule
-                new_weights = self.integrator_function(self.learningrule,   #learning rule
+                Train_mode = self.phase_list[step%len(self.phase_list)]
+                if Train_mode == "Rest":
+                    # if the system is resting, no training is happening
+                    new_weights = Latest_weight
+                else:
+                    # Either training CC or CS repeatedly
+                    new_weights = self.integrator_function(self.learningrule,   #learning rule
                                             all_weights[-1], #general parameters 
                                             delta_t=self.delta_t, #kwargs
-                                            tau=self.tau, tau_learn=self.tau_learn,  
+                                            tau=self.tau, tau_learn=self.tau_learn, 
                                             tau_threshold=self.tau_threshold,
                                             w_rec=self.W_rec , w_input=self.W_input,
                                             w_struct_mask=self.W_structure,
                                             Input=inputs_time[input_step], 
                                             prev_act=all_act[-self.number_timepoints_plasticity:], 
                                             nonlinearity=self.np_nonlinearity,
-                                            N = self.N, excit_only = self.excit_only)
+                                            N = self.N, 
+                                            neurons = self.neurons,
+                                            train_mode = train_mode)
                 if step%1 == 0:
                     all_weights.append(new_weights)
                 Latest_weight = new_weights
