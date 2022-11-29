@@ -102,8 +102,13 @@ def BCM_rule_sliding_th(weights_project, kwargs):
                                 timescale=1./(kwargs['tau_threshold']))
 
     activity_postsyn = activity_current*(activity_current-thresholds)
+    # post-syn as row and pre-syn as column
     weight_change=np.dot(activity_postsyn[:,None], inputs[None,:])/(thresholds[:,None])
-    
+
+    # Weight change for inihibitory neuron as pre-syn should be reveresed 
+    # Row: Postsyn; Col: Presyn
+    weight_change[:, -np.sum(N[2:]):] *= -1
+
     ######## Config which neurons are trianed and their patterns ########
 
     #trimming only for excitory neurons(CC, CS)
@@ -132,3 +137,85 @@ def BCM_rule_sliding_th(weights_project, kwargs):
     return timescale_learn*weight_change*kwargs['w_struct_mask']
  
 
+def Oja_rule(weight_project, kwargs):
+    # see https://neuronaldynamics.epfl.ch/online/Ch19.S2.html#Ch19.F5 for details
+    timescale_learn=1./(kwargs['tau_learn'])
+    activity_all=np.asarray(kwargs['prev_act'])
+    inputs=kwargs['Input']
+    N = kwargs['N']
+    activity_postsyn= activity_all[-1]
+    activity_presyn = activity_all[-2] + inputs
+
+    # Weight_change = postsyn[activity_presyn - w_rec*postsyn]
+    activity_presyn_oja = activity_presyn - np.dot(weight_project, activity_postsyn)
+    # post-syn as row and pre-syn as column
+    weight_change=np.dot(activity_postsyn[:,None], activity_presyn_oja[None,:])
+
+    # Weight change for inihibitory neuron as pre-syn should be reveresed 
+    # Row: Postsyn; Col: Presyn
+    weight_change[:, -np.sum(N[2:]):] *= -1
+
+    ######## Config which neurons are trianed and their patterns ########
+    #trimming only for excitory neurons(CC, CS)
+    if kwargs['neurons'] == 'excit_only': 
+        weight_change[:, -np.sum(N[2:]):]= 0
+        weight_change[-np.sum(N[2:]):, :]= 0
+        
+    elif kwargs['neurons'] == 'inhibit_only': 
+        weight_change[:, :np.sum(N[:2])]= 0
+        weight_change[:np.sum(N[2:]), :]= 0
+
+    # If specific training patterns are sepecified
+    if kwargs['train_mode'] == 'CS':
+        # Only updating the weight of CS as post-synaptic neurons (rows)
+        weight_change[-np.sum(N[1:]):, :]= 0
+
+    elif kwargs['train_mode'] == 'CC':
+        # only updating the weight of CC as post-synaptic neurons (rows)
+        weight_change[:N[0],:] = 0
+        weight_change[-np.sum(N[2:]):, :]= 0
+    
+    elif kwargs['train_mode'] == 'Rest':
+        weight_change[:,:] = 0
+
+    # return a N x N matrix, row is post-syn, col is pre-syn
+    return timescale_learn*weight_change*kwargs['w_struct_mask']
+
+def CBA_rule(weight_project, kwargs):
+    
+    timescale_learn=1./(kwargs['tau_learn'])
+    activity_all=np.asarray(kwargs['prev_act'])
+    inputs=kwargs['Input']
+    N = kwargs['N']
+
+    weight_change=...
+    
+    # Weight change for inihibitory neuron as pre-syn should be reveresed 
+    # Row: Postsyn; Col: Presyn
+    weight_change[:, -np.sum(N[2:]):] *= -1
+
+    ######## Config which neurons are trianed and their patterns ########
+    #trimming only for excitory neurons(CC, CS)
+    if kwargs['neurons'] == 'excit_only': 
+        weight_change[:, -np.sum(N[2:]):]= 0
+        weight_change[-np.sum(N[2:]):, :]= 0
+        
+    elif kwargs['neurons'] == 'inhibit_only': 
+        weight_change[:, :np.sum(N[:2])]= 0
+        weight_change[:np.sum(N[2:]), :]= 0
+
+    # If specific training patterns are sepecified
+    if kwargs['train_mode'] == 'CS':
+        # Only updating the weight of CS as post-synaptic neurons (rows)
+        weight_change[-np.sum(N[1:]):, :]= 0
+
+    elif kwargs['train_mode'] == 'CC':
+        # only updating the weight of CC as post-synaptic neurons (rows)
+        weight_change[:N[0],:] = 0
+        weight_change[-np.sum(N[2:]):, :]= 0
+    
+    elif kwargs['train_mode'] == 'Rest':
+        weight_change[:,:] = 0
+
+    # return a N x N matrix, row is post-syn, col is pre-syn
+    return timescale_learn*weight_change*kwargs['w_struct_mask']

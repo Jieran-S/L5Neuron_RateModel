@@ -35,7 +35,7 @@ tau_threshold = 2.1     # 2.7922382927606537
 
 ####### Network parameters #######
 # Training rule specification
-rule_list = ['None','BCM','Slide_BCM']      #'Simple_test'
+rule_list = ['None','BCM','Slide_BCM', 'Oja']      #'Simple_test'
 learning_rule = rule_list[2]
 
 # Training neuron specification
@@ -82,10 +82,10 @@ W_compare = np.array([  [ 0.01459867,  0.        ,  0.06143608,  0.00388622],
 
 # Campognola 2022 PSP amplitude: https://www.science.org/doi/epdf/10.1126/science.abj5861 
 # connection probability matrix of CS, CC, PV and SST neurons (rows are the presyn cell)
-prob = np.array([[0.16, 0, 0.18, 0.23],
+prob = np.array([ [0.16, 0,    0.18, 0.23],
                   [0.09, 0.06, 0.22, 0.26],
-                  [0.43, 0.38, 0.5, 0.14],
-                  [0.52, 0.13, 0.29, 0.1]])
+                  [0.43, 0.38, 0.5,  0.14],
+                  [0.52, 0.13, 0.29, 0.1 ]])
 
 # number of CS, CC, PV and SST neurons 
 N = np.array([45, 275, 46, 34])
