@@ -84,8 +84,10 @@ class SimpleNetwork:
             self.learningrule = im.BCM_rule
         if self.learning_rule=='Slide_BCM':
             self.learningrule = im.BCM_rule_sliding_th
-        if self.learning_rule=='Simple_test':
-            self.learningrule = im.Simple_test_learn
+        # if self.learning_rule=='Simple_test':
+        #     self.learningrule = im.Simple_test_learn
+        if self.learning_rule=='Oja':
+            self.learning_rule = im.Oja_rule
             
     def _init_integrator(self):        
         if self.integrator == 'runge_kutta':
@@ -227,7 +229,7 @@ class SimpleNetwork:
         self.step = step
         return self.activity, self.weights, step
             
-        
+    ############### Plotting and visualization ################## 
     def plot_activity(self, activity, sim, saving = False):
         '''
         activity: 3d matrix with infomraiton on the activation of different neurons
