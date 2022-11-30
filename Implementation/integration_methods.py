@@ -40,7 +40,7 @@ def update_network(x, kwargs):
     # from the system??
 
     # W-rec should be changed and w_input should be steady
-    update= -x + nonlinearity(np.dot(kwargs['w_rec'], x) + np.dot(kwargs['w_input'], kwargs['Input']))
+    update= -x + nonlinearity(np.dot(kwargs['w_rec'], x) + np.dot(kwargs['w_input'], kwargs['Input'])) 
     
     # linearized change amount
     return timescale*update
@@ -182,7 +182,7 @@ def Oja_rule(weight_project, kwargs):
     return timescale_learn*weight_change*kwargs['w_struct_mask']
 
 def CBA_rule(weight_project, kwargs):
-    
+    # Figure out the best parameter based on analytic sturcture
     timescale_learn=1./(kwargs['tau_learn'])
     activity_all=np.asarray(kwargs['prev_act'])
     inputs=kwargs['Input']

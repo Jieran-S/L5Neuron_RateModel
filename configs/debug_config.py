@@ -36,15 +36,15 @@ tau_threshold = 2.1     # 2.7922382927606537
 ####### Network parameters #######
 # Training rule specification
 rule_list = ['None','BCM','Slide_BCM', 'Oja']      #'Simple_test'
-learning_rule = rule_list[2]
+learning_rule = rule_list[3]
 
 # Training neuron specification
 neurons_list = ['excit_only', 'inhibit_only', 'all']
-neurons = neurons_list[0]
+neurons = neurons_list[2]
 
 # Training pattern specification:
-# phase_list = np.array([1,2])    # placeholder without training
-phase_list =  np.repeat(['CS','CC','Rest'], 10)     #specific pattern
+phase_list = np.array([1,2])    # placeholder without training
+# phase_list =  np.repeat(['CS','CC','Rest'], 10)     #specific pattern
 
 
 '''
