@@ -87,7 +87,7 @@ class SimpleNetwork:
         # if self.learning_rule=='Simple_test':
         #     self.learningrule = im.Simple_test_learn
         if self.learning_rule=='Oja':
-            self.learning_rule = im.Oja_rule
+            self.learningrule = im.Oja_rule
             
     def _init_integrator(self):        
         if self.integrator == 'runge_kutta':
@@ -221,7 +221,7 @@ class SimpleNetwork:
                     all_weights.append(new_weights)
                 Latest_weight = new_weights
 
-                if step >= int(Ntotal*2 - 10): # int(Ntotal%(2*np.pi)) - 1):
+                if step > int(Ntotal*2 - 10): # int(Ntotal%(2*np.pi)) - 1):
                     break
         
         self.activity = all_act[-Ntotal:]
@@ -291,22 +291,31 @@ class SimpleNetwork:
         weights = weights[sim]
         weight_cs = weights[:, :N[0], :]
         weight_cc = weights[:, sum(N[:1]):sum(N[:2]), :]
-        # weight_pv = weights[:, sum(N[:2]):sum(N[:3]), :]
-        # weight_sst = weights[:, sum(N[:3]):sum(N), :]
-        weights_vector = [weight_cs, weight_cc] #, weight_pv, weight_sst]
-        Target_weight = np.array([  [ 0.01459867,  0.        ,  0.06143608,  0.00388622],
+        weight_pv = weights[:, sum(N[:2]):sum(N[:3]), :]
+        weight_sst = weights[:, sum(N[:3]):sum(N), :]
+
+        if self.neurons == 'excit_only':
+            postsyn_weights = [weight_cs, weight_cc]
+            fig, axes = plt.subplots(1,2)
+        elif self.neurons == 'inhibit_only':
+            postsyn_weights = [weight_pv, weight_sst]
+            fig, axes = plt.subplots(1,2)
+        else:
+            postsyn_weights = [weight_cs, weight_cc, weight_pv, weight_sst]
+            fig, axes = plt.subplots(2,2)
+        
+        target_weight = np.array([  [ 0.01459867,  0.        ,  0.06143608,  0.00388622],
                                     [ 0.00577864,  0.00486622,  0.03568564,  0.00790761],
                                     [-0.04649947, -0.06677541, -0.07941407, -0.02081662],
                                     [-0.0333877 , -0.00483243, -0.01764006, -0.00642071]])
-        Wref_col = [ 'dodgerblue','deeppink','saddlebrown','black']
-
-        fig, axes = plt.subplots(1,2)
-        for j,wei in enumerate(weights_vector):
+        Wref_col = [ 'dodgerblue','deeppink','seagreen','fuchsia']
+        
+        for j,wei in enumerate(postsyn_weights):
             # return the average weight from one cell to a specific responses
             w_to_cs = np.mean(wei[:, :, :N[0]], axis=-1)
             w_to_cc = np.mean(wei[:, :, sum(N[:1]):sum(N[:2])], axis= -1 )
-            # w_to_pv = np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis= -1 )
-            # w_to_sst = np.mean(wei[:, :, sum(N[:3]):sum(N)], axis= -1 )
+            w_to_pv = np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis= -1 )
+            w_to_sst = np.mean(wei[:, :, sum(N[:3]):sum(N)], axis= -1 )
         
             x_length = w_to_cc.shape[0]
             # see full colortable: https://matplotlib.org/3.1.0/gallery/color/named_colors.html
@@ -317,7 +326,14 @@ class SimpleNetwork:
             axs = axes.flatten()[j]
             
             # Different weight type
-            for ind,plotwei in enumerate([w_to_cs,w_to_cc]): #, w_to_pv, w_to_sst]):
+            if self.neurons == 'excit_only':
+                presyn_weights = [w_to_cs,w_to_cc]
+            elif self.neurons == 'inhibit_only':
+                presyn_weights = [w_to_pv, w_to_sst]
+            else:
+                presyn_weights = [w_to_cs,w_to_cc, w_to_pv, w_to_sst]
+            
+            for ind,plotwei in enumerate(presyn_weights):
                 # Different cell numbers
                 for i in range(plotwei.shape[1]):
                     # axs.plot(np.arange(x_length)*5, plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
@@ -326,10 +342,18 @@ class SimpleNetwork:
                             c = color_list[ind], 
                             label = label_list[ind], 
                             alpha = 0.5)
-                axs.axhline(y = Target_weight[ind, j], linewidth=2, color=Wref_col[ind])
+                
+                if self.neurons == 'inhibit_only':
+                    ind_tar = ind+2
+                    j_tar = j+2
+                else:
+                    ind_tar = ind 
+                    j_tar = j
+                axs.axhline(y = target_weight[ind_tar, j_tar], linewidth=2, color=Wref_col[ind])
             
             name = ['CS', 'CC', 'PV','SST']
-            LearningTime = max((self.number_steps_before_learning - (self.step+1- self.tsteps))*self.delta_t/self.tau, 
+            LearningTime = max((self.number_steps_before_learning - 
+                                (self.step+1- self.tsteps))*self.delta_t/self.tau, 
                                 0)
             axs.axvline( x= LearningTime,linewidth=2, color='green')
             axs.set_title(f"postsyn(col):{name[j]}")

@@ -80,11 +80,17 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                        [-0.19, -0.11, -0.18, -0.19]])
         w_intiial_CCCS = np.array([ [0.27, 0    ],
                                     [0.19, 0.24,]])
+
+        for i in range(4):
+            for j in range(4):
+                # w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.1*w_intiial_CCCS[i,j])) 
+                w_initial[i,j] = abs(np.random.normal(w_initial[i,j], scale= 0.1*abs(w_initial[i,j]))) 
+
+        # Trying total ramdomization
+        # w_initial = np.random.uniform(low=0, high=1, size=(4,4))
         
-        for i in range(2):
-            for j in range(2):
-                w_initial[i,j] = abs(np.random.normal(w_intiial_CCCS[i,j], scale= 0.1*w_intiial_CCCS[i,j])) 
-    
+        w_initial[-2:,] *= -1
+
         # Generating an synaptic matrix that returns the synaptic connections
         W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
         # print(f'sim:{sim}, eigval:{max(np.linalg.eigvals(W_rec).real)}')
