@@ -90,6 +90,7 @@ def BCM_rule_sliding_th(weights_project, kwargs):
         prefactors_inside_integral_pre=np.arange(-1*number_timepoints+1,1)*dt
         prefactors_inside_integral=np.exp(prefactors_inside_integral_pre*timescale)
         thresholds=timescale*integrate.simps(y=prefactors_inside_integral[:,None]*activity_all**2,x=None, dx=dt, axis=0)
+
         return thresholds
     
     timescale_learn=1./(kwargs['tau_learn'])
@@ -144,12 +145,11 @@ def Oja_rule(weight_project, kwargs):
     inputs=kwargs['Input']
     N = kwargs['N']
     activity_postsyn= activity_all[-1]
-    activity_presyn = activity_all[-2] + inputs
 
     # Weight_change = postsyn[activity_presyn - w_rec*postsyn]
-    activity_presyn_oja = activity_presyn - np.dot(weight_project, activity_postsyn)
+    activity_presyn = activity_postsyn + inputs - np.dot(weight_project, activity_postsyn)
     # post-syn as row and pre-syn as column
-    weight_change=np.dot(activity_postsyn[:,None], activity_presyn_oja[None,:])
+    weight_change=np.dot(activity_postsyn[:,None], activity_presyn[None,:])
 
     # Weight change for inihibitory neuron as pre-syn should be reveresed 
     # Row: Postsyn; Col: Presyn
@@ -181,18 +181,21 @@ def Oja_rule(weight_project, kwargs):
     # return a N x N matrix, row is post-syn, col is pre-syn
     return timescale_learn*weight_change*kwargs['w_struct_mask']
 
-def CBA_rule(weight_project, kwargs):
-    # Figure out the best parameter based on analytic sturcture
+def Cov_rule(weight_project, kwargs):
+    # Covariance-driven learning rules
     timescale_learn=1./(kwargs['tau_learn'])
     activity_all=np.asarray(kwargs['prev_act'])
     inputs=kwargs['Input']
     N = kwargs['N']
 
-    weight_change=...
+    activity_average = np.mean(activity_all, axis=0).reshape(-1,)
+    activity_current = activity_all[-1] - activity_average
+
+    weight_change=np.dot(activity_current[:, None], activity_current[None,:])
     
     # Weight change for inihibitory neuron as pre-syn should be reveresed 
     # Row: Postsyn; Col: Presyn
-    weight_change[:, -np.sum(N[2:]):] *= -1
+    # weight_change[:, -np.sum(N[2:]):] *= -1
 
     ######## Config which neurons are trianed and their patterns ########
     #trimming only for excitory neurons(CC, CS)

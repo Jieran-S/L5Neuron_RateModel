@@ -117,6 +117,7 @@ def create_synapses(N_pre, N_post, prob, same_population=False):
 
         # Randomly select the expected number of neurons from pre to connect with post neurons
         pre = np.random.choice(opts, indegree, replace=False)
+        # pre = np.random.binomial(n, indegree, size=len(opts))
 
         # add connection indices to list pre -> indexes for pre-neurons; post -> index of the post neuron
         i = np.hstack((i, pre))  

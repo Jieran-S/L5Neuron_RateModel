@@ -88,6 +88,8 @@ class SimpleNetwork:
         #     self.learningrule = im.Simple_test_learn
         if self.learning_rule=='Oja':
             self.learningrule = im.Oja_rule
+        if self.learning_rule=='Cov':
+            self.learningrule = im.Cov_rule
             
     def _init_integrator(self):        
         if self.integrator == 'runge_kutta':
@@ -178,7 +180,8 @@ class SimpleNetwork:
 
         if simulate_till_converge == True: 
             # Adding convergence check for last 100 steps
-            while self.check_convergence(activities=np.array(all_act)) != True: 
+            # while self.check_convergence(activities=np.array(all_act)) != True: 
+            while np.amax(np.linalg.eigvals(Latest_weight)) <= 0.8:
                 '''
                 Remark: For steady input, we can just reuse the previous input.
                 But for moving input related to t, we need to find the timing for the cycle to match the smooth transition 
