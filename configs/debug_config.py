@@ -35,7 +35,7 @@ tau_threshold = 2.1     # 2.7922382927606537
 
 ####### Network parameters #######
 # Training rule specification
-rule_list = ['None','BCM','Slide_BCM', 'Oja']      #'Simple_test'
+rule_list = ['None', 'BCM', 'Slide_BCM', 'Oja', 'Cov']      #'Simple_test'
 learning_rule = rule_list[3]
 
 # Training neuron specification
@@ -112,10 +112,10 @@ domain = np.linspace(0, 20, num= 100)
 # amplitude = np.random.choice(domain, size=(4,), replace=True) 
 spatialF = 10
 # If change temporalF, need to change:
-# convergence check method, 
-# mean for plotting peroid, 
-# convergence input_step, 
-# break condition for step limit
+# - convergence check method, 
+# - mean for plotting peroid, 
+# - convergence input_step, 
+# - break condition for step limit
 temporalF = 50
 spatialPhase = 1
 
