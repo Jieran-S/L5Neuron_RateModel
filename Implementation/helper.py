@@ -1,6 +1,7 @@
 import enum
 import os
 import numpy as np
+import pandas as pd
 import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -117,7 +118,6 @@ def create_synapses(N_pre, N_post, prob, same_population=False):
 
         # Randomly select the expected number of neurons from pre to connect with post neurons
         pre = np.random.choice(opts, indegree, replace=False)
-        # pre = np.random.binomial(n, indegree, size=len(opts))
 
         # add connection indices to list pre -> indexes for pre-neurons; post -> index of the post neuron
         i = np.hstack((i, pre))  
@@ -167,7 +167,6 @@ def generate_connectivity(N, p, w_initial, w_noise):
                 pre_neuron = con[0][i]
                 post_neuron = con[1][i]
                 
-                # region: How much should we skip for the target population
                 step_pre = np.sum(N[:pre])
                 step_post = np.sum(N[:post])
 
@@ -221,8 +220,10 @@ def calculate_selectivity_sbi(activity_popu):
 
 def calculate_selectivity(activity_popu):
     """
-    Calculate mean and std of selectivity.
-    No need to be used in my project.
+    activity_popu: A list of 4, each: (len(radians), all_selective_neurons)
+
+    return:
+    all list of 4, each representing one type of neuron
     """
 
     os_mean_data = []  # orientation selectivity
@@ -233,12 +234,18 @@ def calculate_selectivity(activity_popu):
     os_paper_std_data = []
 
     for population in range(4):
+        # Find the most reactive orientation for every neurons 
+        # Shape: (all_selective_neurons,)
         preferred_orientation = np.argmax(activity_popu[population], axis=0)
 
         os, ds, os_paper = [], [], []
         preferred_orientation_freq = [0, 0, 0, 0]
 
         for neuron in range(activity_popu[population].shape[1]):
+            """
+            For each neuron, find its preferred orientation and 
+            calculate its os, ds selectivity
+            """    
             s_max_index = preferred_orientation[neuron]
             preferred_orientation_freq[s_max_index] += 1
 
@@ -256,6 +263,8 @@ def calculate_selectivity(activity_popu):
             # activity of opposite stimulus
             s_oppo = activity_popu[population][(s_max_index + 2) % 4][neuron]
 
+            # os: orthogonal selectivity 
+            # ds: opposite selectivity
             os.append((s_pref_orient - s_orth) / (s_pref_orient + s_orth))
             ds.append((s_pref - s_oppo) / (s_pref + s_oppo))
             os_paper.append((s_pref - s_orth) / (s_pref + s_orth))
@@ -267,6 +276,7 @@ def calculate_selectivity(activity_popu):
         os_paper_mean_data.append(np.mean(os_paper))
         os_paper_std_data.append(np.std(os_paper))
 
+    # all returned vectors are a list of 4, each of one type of neuron
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,os_paper_mean_data,os_paper_std_data)
 
 def plot_activity(activity, config, sim, saving = False):
@@ -397,7 +407,7 @@ def sim_eva(weights, activity, N):
     Avar: Variance of activity across neuron
     '''
     Tvar = Svar = Smean = np.empty([weights.shape[0], 4, 4])
-    Avar = np.empty([activity.shape[0],4])
+    # Avar = np.empty([activity.shape[0],4])
 
     for sim in range(weights.shape[0]):
         weights_vec = weights[sim]
@@ -410,11 +420,12 @@ def sim_eva(weights, activity, N):
 
         #Activity variance
         Act_vec = np.mean(activity[sim, -20:, :], axis = 0)
+        """
         Avar[sim, :] = [np.var(Act_vec[:N[0]]), 
                         np.var(Act_vec[sum(N[:1]):sum(N[:2])]),
                         np.var(Act_vec[sum(N[:2]):sum(N[:3])]),
                         np.var(Act_vec[sum(N[:3]):sum(N)]) ]
-
+        """
         # row-based post-syn situation
         for j, wei in enumerate(weights_vector):
 
@@ -442,9 +453,37 @@ def sim_eva(weights, activity, N):
                             np.mean(wei[:, sum(N[:3]):sum(N)]) ]
 
     # Average over all simulations
-    return (Tvar, Svar, Smean, Avar)
+    return (Tvar, Svar, Smean)
 
-# For purely debuging purpose
+def dir_eva(activity, N):
+    '''
+    input: activity: 3D matrix (radians, Tstep, N)
+
+    return:
+    Amean:      overall mean of activities (4,) in different neuron types
+    Astd:       overall std of activities (4,) in different neuron types
+    Aneuron:    mean neuron activities of different radians
+    Aneuron:    a list of 4, each of which is (radians, neuron_number)
+    '''
+    Amean = [np.mean(activity[:, -500:, :N[0]]),
+                          np.mean(activity[:, -500:, sum(N[:1]):sum(N[:2])]),
+                          np.mean(activity[:, -500:, sum(N[:2]):sum(N[:3])]),
+                          np.mean(activity[:, -500:, sum(N[:3]):sum(N)])]
+    Astd = [np.std(activity[:, -500:, :N[0]]),
+                         np.std(activity[:, -500:, sum(N[:1]):sum(N[:2])]),
+                         np.std(activity[:, -500:, sum(N[:2]):sum(N[:3])]),
+                         np.std(activity[:, -500:, sum(N[:3]):sum(N)])]
+    
+    activity_cs = np.mean(activity[:, -500:, :N[0]], axis=1)
+    activity_cc = np.mean(activity[:, -500:, sum(N[:1]):sum(N[:2])], axis=1)
+    activity_pv = np.mean(activity[:, -500:, sum(N[:2]):sum(N[:3])], axis=1)
+    activity_sst = np.mean(activity[:, -500:, sum(N[:3]):sum(N)], axis=1)
+
+    Aneuron = [activity_cs, activity_cc, activity_pv, activity_sst]
+
+    return (Amean, Astd, Aneuron)
+
+# For debuging
 def find_weights(weights, N):
     def get_sim_weights(weights_vec):
         weight_cs = weights_vec[:, :N[0], :]
@@ -469,12 +508,12 @@ def find_weights(weights, N):
             Smean[sim, :, :] = get_sim_weights(weights_vec=weights[sim])
         return Smean 
     else:
-        print('dimension wrong (must be 3d or 4d)')
+        print('the dimension is wrong (must be 3d or 4d)')
 
-def lossfun(weights, Activity, config, MaxAct, eigval = 2.959173309858104):
+def lossfun(sim_dic, config, MaxAct = 20):
     '''
     Smean, Tvar, Svar, Avar: results from evaluation metic
-    Activity: Activity matrix to calcualte the out-of-range distribution (with panelty)
+    sim_dic: resulting dictionary for simulation
     w_initial: designated final outcome 
     sim: no. of simulation
 
@@ -482,14 +521,34 @@ def lossfun(weights, Activity, config, MaxAct, eigval = 2.959173309858104):
     mean euclidean distance between the final value and the designated target, plus the 
     variance value in terms of both time and among nuerons
     '''
-    
-    # average time variance over simulation and taking sum
-    # Svar_sum = np.sum(np.mean(Svar, axis = 0))
-    (Tvar, Svar, Smean, Avar) = sim_eva(weights, Activity, config.N)
-    Tvar_sum = np.sum(np.mean(Tvar, axis = 0))
-    Avar_mean = np.mean(Avar) # Just take the average activity across differen type is enough
+
+    weight_df = sim_dic['Weight_DF']
+    select_df = sim_dic['Selectivity_DF']
     Reg_factor = 0.1
 
+    # Total time variance across all simulation
+    Tvar_sum = weight_df.loc[['Tvar' in row for row in weight_df.index],].mean(axis=0).sum()
+
+    # RMSE of the final weight to the ideal weight configuration
+    Smean = weight_df.loc[['Mean' in row for row in weight_df.index],].to_numpy()
+    w_target_flat = config.w_compare.T.flatten()
+    rmse = np.sqrt(np.mean(np.square(Smean - w_target_flat)))
+
+    # average activity variance in each simulation, averaging them across different neuron types
+    Avar_mean = select_df.loc['Mean_of_std',].mean()
+
+    # Good selectivity: high os/ds_mean with low os/ds_std
+    # TODO: What is the measurement for selectivity criteria?
+
+    # Sum of mean (over neuron type)  average (over all simulation) OS, DS and OS_paper 
+    Sel_sum = select_df.loc[['Mean_'],][1:].mean(axis = 1).sum()
+
+    # Sum of the mean (over neuron type) inter-simulation std of mean (of each simulation) OS, DS, OS_paper value
+    Sel_std = select_df.loc[['std_data'],][1:].mean(axis = 1).sum()
+
+    # Sum of the mean (over neuron type) intra-simulation std of OS, DS, OS_paper
+    Sel_std_sim = select_df.loc[['std_sim_data'],][1:].mean(axis = 1).sum()
+    """
     # Taking the root mean sAquare log error(RMSLE) panelty for out-of-range activity
     Activity = abs(np.mean(Activity[:, -20:, :], axis = 1).flatten() - 0.5*MaxAct)
     Aor = np.log1p(Activity) - np.log1p(0.5*MaxAct)
@@ -497,13 +556,10 @@ def lossfun(weights, Activity, config, MaxAct, eigval = 2.959173309858104):
         Aor_rmsle = 0 
     else:
         Aor_rmsle = np.sqrt(np.mean(np.square(Aor[Aor > 0])))
-
-    # mean euclidean distance, w_target need to be transposed as the row should mean post-syn neurons
-    Smean_flat = Smean.reshape(Smean.shape[0],-1)
-    w_target_flat = (config.w_target*config.prob/eigval).T.flatten()
-    rmse = np.sqrt(np.mean(np.square(Smean_flat - w_target_flat)))
+    """
     
-    return abs(100*rmse + Aor_rmsle - Reg_factor*(Avar_mean - Tvar_sum))
+    # TODO: What is the scale we should multiply? 
+    return abs(10*(rmse + Sel_std + Sel_std_sim) - 5*(Sel_sum) - Reg_factor*(Avar_mean - Tvar_sum))
     
 def Stable_sim_loss(activity, Max_act = 20): 
     '''
@@ -514,3 +570,20 @@ def Stable_sim_loss(activity, Max_act = 20):
     No_Neuron_Capped = np.sum(np.any(activity-Max_act > -0.01, axis = 1))
 
     return No_Neuron_Capped * Total_Capped
+
+def create_data_dir(config):
+    """
+    Create a folder under /data folder with dates as the name
+    Return the name of the pkl file to store the dictionary information
+    """
+
+    p = config
+
+    now = datetime.now() # current date and time
+    DateFolder = now.strftime('%m_%d')
+    if os.path.exists(f'data/{DateFolder}') == False:
+        os.makedirs(f'data/{DateFolder}')
+    time_id = now.strftime("%m%d_%H:%M")
+    pkltitle = f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}.pkl'
+
+    return pkltitle
