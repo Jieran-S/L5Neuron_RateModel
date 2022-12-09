@@ -1,5 +1,5 @@
 from os.path import abspath
-import sys
+import sys 
 sys.path.append(abspath(''))
 import numpy as np
 from datetime import datetime
@@ -97,7 +97,8 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
             if g == radians[-1]:
                 success = 1
             activity_data.append(activity)
-        activity = np.array(activity_data)
+        
+        activity = np.array(activity_data)      # activity: (len(degree), tsteps, neurons)
         #plot_activity(activity, N, 'data/figures',sim)
 
         if success:
@@ -126,9 +127,13 @@ def run_simulation(input_cs_steady, input_cc_steady, input_pv_steady, input_sst_
                 reliable_cells = []
                 for neuron in range(N[popu]):
                     not_reliable = 0
+                    
+                    # Test if neuron return 
                     for stim in range(4):
                         if activity_not_reliable[popu][stim, neuron] < 0.0001:
                             not_reliable += 1
+                    
+                    # Only append neuron if active in at least one direction
                     if not_reliable != 4:
                         reliable_cells.append(activity_not_reliable[popu][:, neuron])
                 reliable_cells = np.array(reliable_cells).T
