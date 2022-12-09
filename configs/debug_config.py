@@ -32,15 +32,22 @@ tau_threshold = 2.1     # 2.7922382927606537
 ####### Network parameters #######
 # Training rule specification
 rule_list = ['None', 'BCM', 'Slide_BCM', 'Oja', 'Cov']     
-learning_rule = rule_list[3]
+learning_rule = rule_list[4]
 
 # Training neuron specification
 neurons_list = ['excit_only', 'inhibit_only', 'all']
 neurons = neurons_list[2]
 
 # Training pattern specification:
-phase_list = np.array([1,2])    # placeholder without training
-# phase_list =  np.repeat(['CS','CC','Rest'], 10)     #specific pattern
+phase_patterns = {
+    "No_Alter": np.repeat(['all'], 10),
+    "CC_CS_Alter": np.repeat(['CS','CC','Rest'], 10),
+    "All_Alter": np.repeat(['CS','CC','PV','SST','Rest'], 10)
+}
+
+phase_key = list(phase_patterns)[0]
+phase_list = phase_patterns[phase_key]                    # training all neurons at all time
+# phase_list =  np.repeat(['CS','CC','Rest'], 10)     # specific pattern
 
 
 # target synaptic weight matrix of CS, CC, PV and SST neurons 

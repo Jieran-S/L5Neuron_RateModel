@@ -117,7 +117,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         success = 0
 
         ################## iterate through different inputs ##################
-        for g in radians:
+        for deg,g in enumerate(radians):
             # build network here
             Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
                                     integrator=p.integrator, delta_t=p.delta_t, number_steps_before_learning = number_steps_before_learning, 
@@ -129,7 +129,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                                     Ttau=Ttau, 
                                     tau_learn=tau_learn, 
                                     tau_threshold=tau_threshold,
-                                    phase_list=p.phase_list)
+                                    phase_list=p.phase_list,
+                                    degree = degree[deg])
             
             # define inputs
             inputs = helper.distributionInput_negative(a_data=a_data, b_data=b_data,
@@ -147,31 +148,34 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
             # check nan
             if np.isnan(activity[-1]).all():
-                print(f'nan exist in sim:{sim}: ', np.count_nonzero(~np.isnan(activity[-1])))
+                if evaluation_mode == True:
+                    print(f'nan exist in sim:{sim}: ', np.count_nonzero(~np.isnan(activity[-1])))
                 # assign the value such that it is plotable
                 activity[-1][np.isnan(activity[-1])] = 1 
+                nan_counter += 1 
                 # break
 
             # for hyperparameter tuning turn evaluation_mode to False
-            if evaluation_mode == True:
-                # check equilibrium
-                a1 = activity[-50:-25, :]
-                a2 = activity[-25:, :]
-                mean1 = np.mean(a1, axis=0)
-                mean2 = np.mean(a2, axis=0)
-                check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
-                if check_eq > 0:
-                    print(f'Simulation {sim} not converged: {int(check_eq)} neurons, {steps} steps')
-                    # break
-                else: 
-                    print(f'activity {sim} converges. {steps} steps')
-            
+            # check equilibrium
+            a1 = activity[-50:-25, :]
+            a2 = activity[-25:, :]
+            mean1 = np.mean(a1, axis=0)
+            mean2 = np.mean(a2, axis=0)
+            check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
+            if check_eq > 0:
+                not_eq_counter += 1
+                # break
+                if evaluation_mode == True:
+                    print(f'Simulation {sim}, degree {degree[deg]} not converged: {int(check_eq)} neurons, {steps} steps')
+            elif evaluation_mode == True: 
+                print(f'Simulation {sim}, degree {degree[deg]} converged. {steps} steps')
+        
             if g == radians[-1]:
                 success = 1
 
             if g == radians[0]:
-                all_activity_data.append(weights)
                 all_activity_data.append(activity)
+                all_weights_data.append(weights)
 
             weights_data.append(weights)
             activity_data.append(activity)
@@ -233,7 +237,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
     # storage of only 0-degree activities
     activity =  np.asarray(all_activity_data)
-    weights  =   np.asarray(all_weights_data)
+    weights  =  np.asarray(all_weights_data)
 
     ################## selectivity evaluation over all simulations ##################
     # all vectors: (sim, neuron type (4))
@@ -265,10 +269,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     a_std_data = np.std(np.array(a_mean_all), axis=0)
     a_std_sim_data = np.mean(np.array(a_std_all), axis=0)
 
-    # TODO: Create a dataframe to store all useful information. 
-    #       Inlcuding weight config and selectivity
-
-    # Create a dictionary for extracting potential data
+    ################## Information and evaluation data storage ##################
 
     # weight config evaluation
     (Tvar, Svar, Smean) = helper.sim_eva(weights=weights, activity=activity, N=N)
@@ -306,16 +307,22 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                     'nan_counter': nan_counter,'not_eq_counter': not_eq_counter, 'activity_off': activity_off}
 
     # basic configuration dataframe 
-    config_header = ['CC_input', 'CS_input', 'PV_input', 'SST_input', 'tau', 'tau_learn', 'tau_threshold']
-    config_data = p.amplitude + [Sn.tau] + [Sn.tau_learn] + [Sn.tau_threshold]
-    config_df = pd.DataFrame(config_data, columns=config_header)
+    meta_data_header = [   'CC_input', 'CS_input', 'PV_input', 'SST_input', 
+                        'tau', 'tau_learn', 'tau_threshold', 
+                        "learning_rule", "training_mode", "training_pattern"]
+
+    meta_data_mat = p.amplitude + \
+                [Sn.tau] + [Sn.tau_learn] + [Sn.tau_threshold] + \
+                [p.learning_rule] + [p.neurons] + [p.phase_key]
+
+    meta_data = pd.DataFrame(meta_data_mat, index= meta_data_header, columns = ['value'])
 
     # returned product: A dictionary storing all relevant information
-    Sim_dic = {
-        "Weight_DF": weight_df,
-        "Selectivity_DF": selectivity_df,
-        "Summary_Info": summary_info,
-        "Config_Para": config_df,
+    sim_dic = {
+        "weight_df": weight_df,
+        "selectivity_df": selectivity_df,
+        "summary_info": summary_info,
+        "meta_data": meta_data,
     }
     
     # plotting the simulation graphs
@@ -337,17 +344,17 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         filepath = Path(pkltitle)  
         filepath.parent.mkdir(parents=True, exist_ok=True)
         with open(filepath, 'wb') as f:
-            pickle.dump(Sim_dic, f)
+            pickle.dump(sim_dic, f)
 
         # To load the dictionary:
         # with open("path/to/pickle.pkl", 'rb') as f:
         #    loaded_dict = pickle.load(f)
 
-    return Sim_dic
+    return sim_dic
 
 def objective(params):
     amplitude = [params['cc'], params['cs'], params['pv'], params['sst']]
-    Sim_dic = run_simulation( 
+    sim_dic = run_simulation( 
                 Amplitude= amplitude,
                 Steady_input= p.steady_input,
                 spatialF=p.spatialF,
@@ -362,7 +369,7 @@ def objective(params):
                 evaluation_mode=False) 
     
     # return the loss function value
-    lossval = helper.lossfun(Sim_dic, config=p)
+    lossval = helper.lossfun(sim_dic, config=p)
     return lossval
 
 # loss function to reach a stable configuration for the 
@@ -382,15 +389,16 @@ def stable_sim_objective(params):
                 tau_threshold=tau_threshold_fac*tau_learn,
                 evaluation_mode=False) 
     
-    lossval = helper.Stable_sim_loss(activity=activity, Max_act=20)
-    return lossval
+    # TODO: Change the stable simulation loss function input if needed in the future
+    # lossval = helper.Stable_sim_loss(activity=activity, Max_act=20)
+    return ...
 
 #%% Simulation started once for trail
 
 if __name__ == "__main__":
     
     # inputing all tunable parameters from the test.config and first run and visualize
-    (activity, weights, Sn) = run_simulation( Amplitude= p.amplitude,
+    sim_dic = run_simulation( Amplitude= p.amplitude,
                     Steady_input= p.steady_input,
                     spatialF=p.spatialF,
                     temporalF=p.temporalF,

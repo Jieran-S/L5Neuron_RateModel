@@ -522,8 +522,8 @@ def lossfun(sim_dic, config, MaxAct = 20):
     variance value in terms of both time and among nuerons
     '''
 
-    weight_df = sim_dic['Weight_DF']
-    select_df = sim_dic['Selectivity_DF']
+    weight_df = sim_dic['weight_df']
+    select_df = sim_dic['selectivity_df']
     Reg_factor = 0.1
 
     # Total time variance across all simulation

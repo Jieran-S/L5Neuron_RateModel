@@ -29,7 +29,8 @@ class SimpleNetwork:
                 W_structure=None,
                 N = np.array([45, 275, 46, 34]),
                 neurons = 'excit_only',
-                phase_list = np.repeat(['CS','CC','Rest'], 10) ):
+                phase_list = np.repeat(['CS','CC','Rest'], 10),
+                degree = 0 ):
         self.W_rec =W_rec
         self.W_input=W_project
         if W_structure is not None:
@@ -46,6 +47,7 @@ class SimpleNetwork:
         self.N = N
         self.neurons = neurons
         self.phase_list = phase_list
+        self.degree = degree
 
         # Tuning: Plotting and simulation parameter. Controlling tsteps = 2000 and learning_step = 250
         self.tsteps=int((Ttau*tau)/delta_t)
@@ -269,6 +271,7 @@ class SimpleNetwork:
             axs.set_title(namelist[ind])
 
         fig.tight_layout(pad=2.0)
+        fig.suptitle(f"{self.learning_rule} with {self.degree} degree")
 
         now = datetime.now() # current date and time
         DateFolder = now.strftime('%m_%d')
@@ -371,6 +374,7 @@ class SimpleNetwork:
 
         #save graph
         fig.tight_layout(pad=2.0)
+        fig.suptitle(f"{self.learning_rule} with {self.degree} degree")
 
         now = datetime.now() # current date and time
         DateFolder = now.strftime('%m_%d')
