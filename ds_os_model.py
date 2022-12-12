@@ -22,6 +22,7 @@ import pickle
 import importlib
 import Implementation.network_model as nm
 import Implementation.helper as helper
+import Implementation.visualization as vis
 # if len(sys.argv) != 0:
 #     p = importlib.import_module(sys.argv[1])
 # else:
@@ -166,22 +167,26 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                 not_eq_counter += 1
                 # break
                 if evaluation_mode == True:
-                    print(f'Simulation {sim}, degree {degree[deg]} not converged: {int(check_eq)} neurons, {steps} steps')
+                    ...
+                    # print(f'Simulation {sim}, degree {degree[deg]} not converged: {int(check_eq)} neurons, {steps} steps')
             elif evaluation_mode == True: 
-                print(f'Simulation {sim}, degree {degree[deg]} converged. {steps} steps')
-        
+                # print(f'Simulation {sim}, degree {degree[deg]} converged. {steps} steps')
+                ...
+
             if g == radians[-1]:
                 success = 1
-
-            if g == radians[0]:
                 all_activity_data.append(activity)
-                all_weights_data.append(weights)
-
+                all_weights_data.append(weights) 
+            
             weights_data.append(weights)
             activity_data.append(activity)
         
         activity = np.asarray(activity_data)    # activity: (radians, timesteps, neurons)
         weights = np.asarray(weights_data)      # weight:   (radians, timesteps, postsyn, presyn)
+        
+        # TODO: Only attach the mean activities and change the plot activity function
+        # all_activity_data.append(activity)      # all_activity_data:    (simulation, radians, timesteps, neurons)
+        # all_weights_data.append(weights)        # weight:               (simulation, radians, timesteps, postsyn, presyn))
 
         ################## selectivity evaluation ##################
         if success: 
@@ -236,8 +241,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                 os_paper_std_all.append(os_paper_std)
 
     # storage of only 0-degree activities
-    activity =  np.asarray(all_activity_data)
-    weights  =  np.asarray(all_weights_data)
+    activity =  np.asarray(all_activity_data)           # activity:    (simulation, radians, timesteps, neurons)
+    weights  =  np.asarray(all_weights_data)            # weights:     (simulation, radians, timesteps, postsyn, presyn))
 
     ################## selectivity evaluation over all simulations ##################
     # all vectors: (sim, neuron type (4))
@@ -272,28 +277,24 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     ################## Information and evaluation data storage ##################
 
     # weight config evaluation
-    (Tvar, Svar, Smean) = helper.sim_eva(weights=weights, activity=activity, N=N)
-    weight_mat = np.concatenate([Tvar, Svar, Smean], axis=0).reshape(Tvar.shape[0]*3, -1)
+    weight_mat = Sn.weight_eva(weights=weights)
     
     mat_header = ['CS-CS', 'CS-CC', 'CS-PV', 'CS-SST',
                     'CC-CS', 'CC-CC', 'CC-PV', 'CC-SST',
                     'PV-CS', 'PV-CC', 'PV-PV', 'PV-SST',
                     'SST-CS', 'SST-CC', 'SST-PV', 'SST-SST']
     
-    sim_char_vec = np.char.mod('%d', np.arange(Tvar.shape[0]))
-    list1 = ['Tvar_' + x for x in sim_char_vec]
-    list2 = ['Svar_' + x for x in sim_char_vec]
-    list3 = ['Mean_' + x for x in sim_char_vec]
-    indlist = np.concatenate([list1, list2, list3])
-    
+    indlist = [ 'Mean_weight',  'Std_mean_W',     'Mean_std_W',      
+                'Mean_Wdel',    'Std_mean_Wdel',  'Mean_std_Wdel']
+
     weight_df = pd.DataFrame(weight_mat, columns=mat_header, index = indlist)
 
     # Selectivity matrix over simulation
     selectivity_header = ['CS', 'CC', 'PV', 'SST']
-    selectivity_ind = [ 'Mean_act', 'Std_of_mean',  'Mean_of_std',      # a_mean_data, a_std_data, a_std_sim_data
-                        'Mean_OS',  'Std_mean_OS',  'Mean_std_OS', 
-                        'Mean_DS',  'Std_mean_DS',  'Mean_std_DS', 
-                        'Mean_OS_p','Std_mean_OS_p','Mean_std_OS_p', 
+    selectivity_ind = [ 'Mean_act', 'Std_of_mean',  'Mean_std',      # a_mean_data, a_std_data, a_std_sim_data
+                        'Mean_of_OS',  'Std_mean_OS',  'Mean_std_OS', 
+                        'Mean_of_DS',  'Std_mean_DS',  'Mean_std_DS', 
+                        'Mean_of_OS_p','Std_mean_OS_p','Mean_std_OS_p', 
                         ]
     selectivity_mat = np.concatenate((  a_mean_data,    a_std_data,     a_std_sim_data, 
                                         os_mean_data,   os_std_data,    os_std_sim_data, 
@@ -319,15 +320,20 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
     # returned product: A dictionary storing all relevant information
     sim_dic = {
-        "weight_df": weight_df,
-        "selectivity_df": selectivity_df,
-        "summary_info": summary_info,
-        "meta_data": meta_data,
+        "weight_df":        weight_df,
+        "selectivity_df":   selectivity_df,
+        "summary_info":     summary_info,
+        "meta_data":        meta_data,
+        # "weights":          weights, 
+        # "activity":         activity,
     }
     
     # plotting the simulation graphs
     if evaluation_mode == True:
         
+        # Adding on the loss value form objective function
+        sim_dic['loss_value'] = helper.lossfun(sim_dic, config = p)
+
         # plot activity and weight results
         if p.sim_number <6:
             for isim in range(p.sim_number):
