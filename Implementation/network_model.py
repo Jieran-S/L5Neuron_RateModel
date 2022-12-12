@@ -234,7 +234,7 @@ class SimpleNetwork:
         self.step = step
         return self.activity, self.weights, step
             
-    ############### Plotting and visualization ################## 
+    ############### Visualization and Evaluation ################## 
     def plot_activity(self, activity, sim, saving = False):
         '''
         activity: 3d matrix with infomraiton on the activation of different neurons
@@ -258,15 +258,21 @@ class SimpleNetwork:
         fig,axes = plt.subplots(2,2)
         for ind, act in enumerate(activity_vec):
             axs = axes.flatten()[ind]
+            
+            # Plotting the fluctuating behavior
             for i in range(act.shape[1]):
                 n = 25
                 # axs.plot(np.arange(act.shape[0])*5, act[:,i],c='grey',alpha=0.5)
                 axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.3)
 
+            # Plotting the mean activity
             for i in range(act.shape[1]):
                 mean_act = np.average(act[:,i].reshape(-1, n), axis=1)
                 axs.plot(np.linspace(0, Ttau, act.shape[0]), np.repeat(mean_act, n),c='orange',alpha=0.8)
-            LearningTime = (self.number_steps_before_learning - (self.step+1- self.tsteps))*self.delta_t/self.tau
+    
+            LearningTime = max((self.number_steps_before_learning - 
+                                (self.step+1- self.tsteps))*self.delta_t/self.tau, 
+                                0)
             axs.axvline( x= LearningTime,linewidth=2, color='green')
             axs.set_title(namelist[ind])
 
@@ -387,3 +393,85 @@ class SimpleNetwork:
             time_id = datetime.now().strftime("%m%d_%H:%M")
             title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_weight.png'
             fig.savefig(title_save)
+
+    def weight_eva(self, weights):
+        '''
+        weights: (simulation, degree, time_step, post-syn, pre-syn)
+        N: neuron compositions
+
+        As degree should not be a factor for weight differences, we
+        treated the weight as nothing but an extra round of simulation
+
+        W_delta: difference between the start and end of learing 
+        W_std: neuron-wide weight variance for all different neurons
+        W_mean: mean value for weight the final product
+        '''
+        def weight_summary(weights_vec, N):
+            """
+            Input
+            weights_vect matrix (sim, N, N)
+            N: neuron composition
+
+            Output
+            a mean matrix (sim, 16,16)
+            a std matrix (sim, 16,16)
+            """
+            W_std = W_mean = np.empty([weights_vec.shape[0], len(N), len(N)])
+
+            for sim in range(weights_vec.shape[0]):
+                # weights for different post-syn
+                weight_cs = weights_vec[:, :N[0], :]
+                weight_cc = weights_vec[:, sum(N[:1]):sum(N[:2]), :]
+                weight_pv = weights_vec[:, sum(N[:2]):sum(N[:3]), :]
+                weight_sst = weights_vec[:, sum(N[:3]):sum(N), :]
+                weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
+
+                # row-based post-syn situation
+                for j, wei in enumerate(weights_vector):
+                    # mean value for expression
+                    W_mean[sim, j, : ] = [np.mean(wei[:, :N[0]]),
+                                    np.mean(wei[:, sum(N[:1]):sum(N[:2])]),
+                                    np.mean(wei[:, sum(N[:2]):sum(N[:3])]),
+                                    np.mean(wei[:, sum(N[:3]):sum(N)]) ]
+
+                    # neuron-wise variance (Same condition directly calculate variance)
+                    W_std[sim, j, : ] = [np.std(wei[:, :N[0]]),
+                                    np.std(wei[:, sum(N[:1]):sum(N[:2])]),
+                                    np.std(wei[:, sum(N[:2]):sum(N[:3])]),
+                                    np.std(wei[:, sum(N[:3]):sum(N)]) ]
+
+            return W_mean, W_std
+
+        # variable declarition
+        N = self.N
+        LearningTime = max((self.number_steps_before_learning - 
+                                (self.step+1- self.tsteps))*self.delta_t/self.tau, 
+                                0)
+
+        # merge the degree and simulation dimension
+        weights = weights.reshape(-1, weights.shape[2], weights.shape[3], weights.shape[4])
+        
+        # take the final time
+        weight_fin = np.mean(weights[:, -20:], axis = 1)
+        W_mean, W_std = weight_summary(weight_fin, N)
+
+        # take the change
+        weight_delta = weight_fin - np.mean(weights[:, LearningTime-20:LearningTime], axis = 1)
+        W_delta, W_dstd = weight_summary(weight_delta, N)
+
+        # Taking mean over simulation
+        W_mean = np.mean(W_mean, axis = 0)
+        W_std_mean = np.mean(W_std, axis = 0)
+        W_dmean = np.mean(W_delta, axis = 0)
+        W_dstd_mean = np.mean(W_dstd, axis = 0)
+        
+        # taking the std of the mean value
+        W_mean_std = np.std(W_mean, axis = 0)
+        W_dmean_std = np.std(W_delta, axis = 0)
+
+        # Average over all simulations
+        return np.stack([W_mean, W_mean_std, W_std_mean,
+                        W_dmean, W_dmean_std, W_dstd_mean], axis = 0).reshape(6,-1)
+
+    def selectivity_eva(self, selectivity_df):
+        ...

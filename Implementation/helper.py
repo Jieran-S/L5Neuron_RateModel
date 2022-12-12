@@ -279,182 +279,6 @@ def calculate_selectivity(activity_popu):
     # all returned vectors are a list of 4, each of one type of neuron
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,os_paper_mean_data,os_paper_std_data)
 
-def plot_activity(activity, config, sim, saving = False):
-    '''
-    activity: 3d matrix with infomraiton on the activation of different neurons
-    '''
-
-    N = config.N
-    learningrule = config.learning_rule
-    Ttau = config.Ttau
-
-    if len(activity) == 0:
-        return(0)
-    # Extract the connectivity data for each cell population? 
-    activity = activity[sim]
-    activity_cs = activity[:, :N[0]]
-    activity_cc = activity[:, sum(N[:1]):sum(N[:2])]
-    activity_pv = activity[:, sum(N[:2]):sum(N[:3])]
-    activity_sst = activity[:, sum(N[:3]):sum(N)]
-    activity_vec = [activity_cs, activity_cc, activity_pv, activity_sst]
-    namelist = ['CS', 'CC', 'PV', 'SST']
-
-    fig,axes = plt.subplots(2,2)
-    for ind, act in enumerate(activity_vec):
-        axs = axes.flatten()[ind]
-        for i in range(act.shape[1]):
-            n = 25
-            # axs.plot(np.arange(act.shape[0])*5, act[:,i],c='grey',alpha=0.5)
-            axs.plot(np.linspace(0, Ttau, act.shape[0]), act[:,i],c='grey',alpha=0.3)
-
-        for i in range(act.shape[1]):
-            mean_act = np.average(act[:,i].reshape(-1, n), axis=1)
-            axs.plot(np.linspace(0, Ttau, act.shape[0]), np.repeat(mean_act, n),c='orange',alpha=0.8)
-
-        axs.set_title(namelist[ind])
-
-    fig.tight_layout(pad=2.0)
-
-    now = datetime.now() # current date and time
-    DateFolder = now.strftime('%m_%d')
-    if os.path.exists(f'data/{DateFolder}') == False:
-        os.makedirs(f'data/{DateFolder}')
-        
-    if saving == True:
-        time_id = now.strftime("%m%d_%H:%M")
-
-        time_id = datetime.now().strftime("%m%d_%H:%M")
-        title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_act.png'
-        fig.savefig(title_save)
-
-def plot_weights(weights, config, sim, saving = False ):
-
-    '''
-    weights: a 3D matrix (4D if all simulation taken into account): Tstep x N(post-syn) x N(pre-syn)
-    '''
-    N = config.N
-    Ttau = config.Ttau
-    learningrule = config.learning_rule
-
-    weights = weights[sim]
-    weight_cs = weights[:, :N[0], :]
-    weight_cc = weights[:, sum(N[:1]):sum(N[:2]), :]
-    # weight_pv = weights[:, sum(N[:2]):sum(N[:3]), :]
-    # weight_sst = weights[:, sum(N[:3]):sum(N), :]
-    weights_vector = [weight_cs, weight_cc] #, weight_pv, weight_sst]
-
-    fig, axes = plt.subplots(1,2)
-    for j,wei in enumerate(weights_vector):
-        # return the average weight from one cell to a specific responses
-        w_to_cs = np.mean(wei[:, :, :N[0]], axis=-1)
-        w_to_cc = np.mean(wei[:, :, sum(N[:1]):sum(N[:2])], axis= -1 )
-        # w_to_pv = np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis= -1 )
-        # w_to_sst = np.mean(wei[:, :, sum(N[:3]):sum(N)], axis= -1 )
-       
-        x_length = w_to_cc.shape[0]
-        # see full colortable: https://matplotlib.org/3.1.0/gallery/color/named_colors.html
-        color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
-        label_list = ['cs pre', 'cc pre', 'pv pre', 'sst pre']
-        
-        # Specify the graph
-        axs = axes.flatten()[j]
-        
-        # Different weight type
-        for ind,plotwei in enumerate([w_to_cs,w_to_cc]): #, w_to_pv, w_to_sst]):
-            # Different cell numbers
-            for i in range(plotwei.shape[1]):
-                # axs.plot(np.arange(x_length)*5, plotwei[:, i], c = color_list[ind], label = label_list[ind], alpha = 0.5)
-                axs.plot(np.linspace(0, Ttau, x_length), 
-                         plotwei[:, i], 
-                         c = color_list[ind], 
-                         label = label_list[ind], 
-                         alpha = 0.5)
-        
-        name = ['CS', 'CC'] #, 'PV','SST']
-        axs.set_title(f"postsyn(col):{name[j]}")
-    
-    # Set legend content and location
-    handles, labels = axs.get_legend_handles_labels()
-    by_label = dict(zip(labels, handles))
-    fig.legend( by_label.values(), 
-                by_label.keys(),
-                loc = 'lower center', 
-                ncol = 4, bbox_to_anchor=(0.5, 0))
-
-    #save graph
-    fig.tight_layout(pad=2.0)
-
-    now = datetime.now() # current date and time
-    DateFolder = now.strftime('%m_%d')
-    if os.path.exists(f'data/{DateFolder}') == False:
-        os.makedirs(f'data/{DateFolder}')
-
-    if saving == True:
-        time_id = now.strftime("%m%d_%H:%M")
-
-        time_id = datetime.now().strftime("%m%d_%H:%M")
-        title_save = f'data/{DateFolder}/{learningrule}_{sim}_{time_id}_weight.png'
-        fig.savefig(title_save)
-
-def sim_eva(weights, activity, N):
-    '''
-    weight: 4D matrix (sim, Tstep, N(post-syn), N(pre-syn))
-    activity: 3D matrix (sim, Tstep, N)
-
-    Tvar: time-series average variance for individual weights
-    Svar: neuron-wide weight variance for all different neurons
-    Smean: mean value for weight the final product
-    Avar: Variance of activity across neuron
-    '''
-    Tvar = Svar = Smean = np.empty([weights.shape[0], 4, 4])
-    # Avar = np.empty([activity.shape[0],4])
-
-    for sim in range(weights.shape[0]):
-        weights_vec = weights[sim]
-        # weights for different post-syn
-        weight_cs = weights_vec[:, :N[0], :]
-        weight_cc = weights_vec[:, sum(N[:1]):sum(N[:2]), :]
-        weight_pv = weights_vec[:, sum(N[:2]):sum(N[:3]), :]
-        weight_sst = weights_vec[:, sum(N[:3]):sum(N), :]
-        weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
-
-        #Activity variance
-        Act_vec = np.mean(activity[sim, -20:, :], axis = 0)
-        """
-        Avar[sim, :] = [np.var(Act_vec[:N[0]]), 
-                        np.var(Act_vec[sum(N[:1]):sum(N[:2])]),
-                        np.var(Act_vec[sum(N[:2]):sum(N[:3])]),
-                        np.var(Act_vec[sum(N[:3]):sum(N)]) ]
-        """
-        # row-based post-syn situation
-        for j, wei in enumerate(weights_vector):
-
-            # Time-series variance: time-based variance for the last 400 steps
-            mat_tvar = np.var(wei[-400:, :, :], axis= 0)
-            # Taking the average of all same value (Post-pre same condition)
-            Tvar[sim, j, : ] = [np.mean(mat_tvar[:, :N[0]]),
-                            np.mean(mat_tvar[:, sum(N[:1]):sum(N[:2])]),
-                            np.mean(mat_tvar[:, sum(N[:2]):sum(N[:3])]),
-                            np.mean(mat_tvar[:, sum(N[:3]):sum(N)])]
-
-            # Taking the average of the last 10 value to denoise
-            wei = np.mean(wei[-10:, :, :], axis=0)
-
-            # neuron-wise variance (Same condition directly calculate variance)
-            Svar[sim, j, : ] = [np.var(wei[:, :N[0]]),
-                            np.var(wei[:, sum(N[:1]):sum(N[:2])]),
-                            np.var(wei[:, sum(N[:2]):sum(N[:3])]),
-                            np.var(wei[:, sum(N[:3]):sum(N)]) ]
-
-            # mean value for expression
-            Smean[sim, j, : ] = [np.mean(wei[:, :N[0]]),
-                            np.mean(wei[:, sum(N[:1]):sum(N[:2])]),
-                            np.mean(wei[:, sum(N[:2]):sum(N[:3])]),
-                            np.mean(wei[:, sum(N[:3]):sum(N)]) ]
-
-    # Average over all simulations
-    return (Tvar, Svar, Smean)
-
 def dir_eva(activity, N):
     '''
     input: activity: 3D matrix (radians, Tstep, N)
@@ -541,13 +365,13 @@ def lossfun(sim_dic, config, MaxAct = 20):
     # TODO: What is the measurement for selectivity criteria?
 
     # Sum of mean (over neuron type)  average (over all simulation) OS, DS and OS_paper 
-    Sel_sum = select_df.loc[['Mean_'],][1:].mean(axis = 1).sum()
+    Sel_sum = select_df.loc[['Mean_' in row for row in select_df.index],][2:].mean(axis = 1).sum()
 
     # Sum of the mean (over neuron type) inter-simulation std of mean (of each simulation) OS, DS, OS_paper value
-    Sel_std = select_df.loc[['std_data'],][1:].mean(axis = 1).sum()
+    Sel_std = select_df.loc[['Std_mean_' in row for row in select_df.index],].mean(axis = 1).sum()
 
     # Sum of the mean (over neuron type) intra-simulation std of OS, DS, OS_paper
-    Sel_std_sim = select_df.loc[['std_sim_data'],][1:].mean(axis = 1).sum()
+    Sel_std_sim = select_df.loc[['Mean_Std' in row for row in select_df.index],].mean(axis = 1).sum()
     """
     # Taking the root mean sAquare log error(RMSLE) panelty for out-of-range activity
     Activity = abs(np.mean(Activity[:, -20:, :], axis = 1).flatten() - 0.5*MaxAct)
