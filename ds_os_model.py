@@ -11,12 +11,13 @@ import math
 from sympy import N
 sys.path.append(abspath(''))
 
-# Simulation, hyperparameter tuning
+# Simulation, visualization and hyperparameter tuning
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import pickle
 import hyperopt 
 from joblib import Parallel, delayed
-import pickle
 
 # Model config and parameter
 import importlib
@@ -32,11 +33,9 @@ np.random.seed(42)
 
 '''
  Parameter not in need so far
- input_cs_steady, input_cc_steady, input_pv_steady, input_sst_steady,
- input_cs_amplitude, input_cc_amplitude, input_pv_amplitude, input_sst_amplitude, 
 '''
 def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase, 
-                    learning_rule, number_steps_before_learning, Ttau, evaluation_mode,
+                    learning_rule, Ttau, visualization_mode,
                     tau, 
                     tau_learn, 
                     tau_threshold):
@@ -68,43 +67,39 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     
     ########## selectivity evaluation ##########
     nan_counter, not_eq_counter = 0, 0
-    activity_off = [0,0,0,0]
-    os_rel, ds_rel, os_paper_rel = None, None, None
+    activity_off = np.array([0,0,0,0])
     os_mean_all, os_std_all, ds_mean_all, ds_std_all, os_paper_mean_all, os_paper_std_all, a_mean_all, a_std_all = \
         [], [], [], [], [], [], [], []
 
+    ########## data storage structure ##########
+    """
+    all_activity/weights_plot_list: store all activities/weights data across simulations for plotting
+    weights_eva_list: store last 50 steps of weights across simulation for evaluation
+    ini_weights_list: store initial weights info across all simulation for evaluation
+    """
+    activity_plot_list = []     # (sim, radians, timestep/n, neurons)
+    weights_plot_list = []      # (sim * radians, timestep/n, postsyn, presyn)
+    weights_eva_list = []       # (sim * radians, 60, postsyn, presyn)
+    ini_weights_list = []           # (sim * radians, postsyn, presyn)
+
     ################## iterate through different initialisations ##################
-    all_activity_data = []
-    all_weights_data = []
     for sim in range(p.sim_number):
-        
-        activity_data = []
-        weights_data = []
+
+        # store activities per simulation for intra-simulation evaluation
+        activity_eval_sim = []  # (radians, timestep/n, neurons)
 
         ########## weight initialization ##########
         w_initial = np.abs(w_target)
-        if p.neurons == 'excit_only':
-            train_neuron_type = [0,1]
-        elif p.neurons == 'inhibit_only':
-            train_neuron_type = [2,3]
-        else:
-            train_neuron_type = [0,1,2,3]
+        train_neuron_type = [[0,1],[2,3],[0,1,2,3]][p.neurons_list.index(p.neurons)]
 
         for i in train_neuron_type:
             for j in train_neuron_type:
                 w_initial[i,j] = abs(np.random.normal(w_target[i,j], scale= 0.1*abs(w_target[i,j]))) 
 
-        # TODO:Trying total ramdomization
+        # TODO:Trying total ramdomization in the future 
         # w_initial = np.random.uniform(low=0, high=1, size=(4,4))
         w_initial[-2:,] *= -1
         
-        ########## network initialization ##########
-        W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
-        W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
-
-        # weight matrix format initialization
-        W_project_initial = np.eye(W_rec.shape[0])
-
         ########## activity initialization ##########
         initial_values = np.random.uniform(low=0, high=1, size=(np.sum(N),)) 
 
@@ -117,118 +112,114 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         # selectivity measurement       
         success = 0
 
-        ################## iterate through different inputs ##################
+        ########## network initialization ##########
+        W_rec = helper.generate_connectivity(N, prob, w_initial, w_noise)
+        W_rec = W_rec/max(np.linalg.eigvals(W_rec).real)
+
+        # weight matrix format initialization
+        W_project_initial = np.eye(W_rec.shape[0])
+
+        # build the network
+        Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
+                                integrator=p.integrator, delta_t=p.delta_t, 
+                                update_function=p.update_function, 
+                                number_steps_before_learning = p.number_steps_before_learning, 
+                                gamma=p.gamma, N = p.N, 
+                                neurons= p.neurons, 
+                                phase_list=p.phase_list,
+                                #parameters to tune
+                                learning_rule=learning_rule,
+                                tau=tau, 
+                                Ttau=Ttau, 
+                                tau_learn=tau_learn, 
+                                tau_threshold=tau_threshold)
+
+        ####################### iterate through different inputs #######################
         for deg,g in enumerate(radians):
-            # build network here
-            Sn = nm.SimpleNetwork(W_rec, W_project=W_project_initial, nonlinearity_rule=p.nonlinearity_rule,
-                                    integrator=p.integrator, delta_t=p.delta_t, number_steps_before_learning = number_steps_before_learning, 
-                                    update_function=p.update_function, learning_rule=learning_rule,
-                                    gamma=p.gamma, N = p.N, 
-                                    neurons= p.neurons, 
-                                    #parameters to tune
-                                    tau=tau, 
-                                    Ttau=Ttau, 
-                                    tau_learn=tau_learn, 
-                                    tau_threshold=tau_threshold,
-                                    phase_list=p.phase_list,
-                                    degree = degree[deg])
             
             # define inputs
-            inputs = helper.distributionInput_negative(a_data=a_data, b_data=b_data,
-                                        spatialF=spatialF, temporalF=temporalF, orientation=g,
-                                        spatialPhase=spatialPhase, amplitude=amplitude, T=Sn.tsteps,
-                                        steady_input=steady_input, N=N)
+            inputs = helper.distributionInput_negative(a_data=a_data, b_data=b_data, orientation=g, T=Sn.tsteps,N=N,
+                                                        # Tuning parameters below
+                                                        spatialF=spatialF, 
+                                                        temporalF=temporalF,
+                                                        spatialPhase=spatialPhase,
+                                                        amplitude=amplitude,
+                                                        steady_input=steady_input,   )
 
-            # run simulation
-            activity, weights, steps = Sn.run(inputs, initial_values, simulate_till_converge = True)
+            # run simulation: raw_activity:(tstep, neurons); raw_weights:(tstep, postsyn, presyn)
+            raw_activity, raw_weights = Sn.run(inputs, initial_values, simulate_till_converge = True)
             
-            # OPTIONAL: Slice the matrix within time scale to 1/2
-            # OPTIONAL: Taking only the last tsteps information 
-            activity = np.asarray(activity)
-            weights = np.asarray(weights)
+            ############ data quality checking ############
+
+            # mean period of input, change according to termporalF
+            n = 25
+            # for non-steady input, take only mean for downstream analysis
+            activity_mean = np.mean(np.asarray(raw_activity).reshape(-1,n, raw_activity.shape[-1]), axis = 1)
+            weights_mean  = np.mean(np.asarray(raw_weights).reshape(-1, n, raw_weights.shape[-2], raw_weights.shape[-1]), axis = 1)
 
             # check nan
-            if np.isnan(activity[-1]).all():
-                if evaluation_mode == True:
-                    print(f'nan exist in sim:{sim}: ', np.count_nonzero(~np.isnan(activity[-1])))
+            if np.isnan(activity_mean[-1]).all():
+                if visualization_mode:
+                    print(f'nan exist in sim:{sim}: ', np.count_nonzero(~np.isnan(activity_mean[-1])))
                 # assign the value such that it is plotable
-                activity[-1][np.isnan(activity[-1])] = 1 
+                activity_mean[-1][np.isnan(activity_mean[-1])] = 1 
                 nan_counter += 1 
                 # break
 
-            # for hyperparameter tuning turn evaluation_mode to False
             # check equilibrium
-            a1 = activity[-50:-25, :]
-            a2 = activity[-25:, :]
-            mean1 = np.mean(a1, axis=0)
-            mean2 = np.mean(a2, axis=0)
+            mean1 = np.mean(activity_mean[-10:-5, :], axis=0)
+            mean2 = np.mean(activity_mean[-5:, :], axis=0)
             check_eq = np.sum(np.where(mean1 - mean2 < 0.05, np.zeros(np.sum(N)), 1))
             if check_eq > 0:
                 not_eq_counter += 1
                 # break
-                if evaluation_mode == True:
+                if visualization_mode:
                     ...
                     # print(f'Simulation {sim}, degree {degree[deg]} not converged: {int(check_eq)} neurons, {steps} steps')
-            elif evaluation_mode == True: 
+            elif visualization_mode: 
                 # print(f'Simulation {sim}, degree {degree[deg]} converged. {steps} steps')
                 ...
-
+            
+            # check if the simulation can be entered criteria
             if g == radians[-1]:
                 success = 1
-                all_activity_data.append(activity)
-                all_weights_data.append(weights) 
             
-            weights_data.append(weights)
-            activity_data.append(activity)
-        
-        activity = np.asarray(activity_data)    # activity: (radians, timesteps, neurons)
-        weights = np.asarray(weights_data)      # weight:   (radians, timesteps, postsyn, presyn)
-        
-        # TODO: Only attach the mean activities and change the plot activity function
-        # all_activity_data.append(activity)      # all_activity_data:    (simulation, radians, timesteps, neurons)
-        # all_weights_data.append(weights)        # weight:               (simulation, radians, timesteps, postsyn, presyn))
+            ############ data storage for different purposes ############
+            # for evaluation 
+            weights_eval = weights_mean[-50:]             # only the last 25 data points are needed
+            activity_eval = activity_mean[int(-600/n):]   # only the last 500/n data is needed
+            
+            activity_eval_sim.append(activity_eval)
+            weights_eva_list.append(weights_eval)        
+            ini_weights_list.append(W_rec)          
+            
+            # for visualization (only for visualization_mode)
+            if visualization_mode:
+                # Slicing the timesteps, leaving only 50 of them for plotting
+                plot_steps = 50
+                plot_interval = activity_mean.shape[0]//(plot_steps-1) - 1 
+                plot_begin    = activity_mean.shape[0]%(plot_steps-1)
+                activity_plot = activity_mean[plot_begin::plot_interval]
+                weights_plot  = weights_mean[plot_begin::plot_interval]
 
-        ################## selectivity evaluation ##################
+        # ------ radians loop ends here ------
+        activity_eval_sim = np.asarray(activity_eval_sim)           # activity_eval_sim:    (radians, 600/n, neurons)
+        
+        if visualization_mode:
+            activity_plot_list.append(np.asarray(activity_plot))        # activity_plot_list:    (simulation, radians, plot_steps, neurons)
+            weights_plot_list.append(np.asarray(weights_plot))
+
+        ################## Intrasimulation selectivity evaluation ##################
         if success: 
-            (a_mean, a_std, activity_not_reliable) = helper.dir_eva(activity, N)
             # activity_not_reliable: a list of 4, each of which: (radians, neuron_number)
+            a_mean, a_std, activity_not_reliable = Sn.activity_eva(activity_eval_sim, n)
             
             # mean and std for different neuron types in one simulation
             a_mean_all.append(a_mean)
             a_std_all.append(a_std)
             
-            activity_popu = []
-            
-            """
-            iterating over all neuron type, and mean neuron activities wrt different orientation,
-            returning a list of 4, each containing only selective neurons activities 
-            (len(radians), all_selective_neurons)
-
-            if one type of neuron show no activities at all, add it to activity_off
-            """
-            for popu in range(len(N)):
-                reliable_cells = []
-
-                # iterating through all neuron
-                for neuron in range(N[popu]):
-                    not_reliable = 0
-                    
-                    # Test if neuron is active in different stimulus
-                    for rad in range(4):
-                        if activity_not_reliable[popu][rad, neuron] < 0.0001:
-                            not_reliable += 1
-                    
-                    # Only append neuron if active in at least one direction
-                    if not_reliable != 4:
-                        reliable_cells.append(activity_not_reliable[popu][:, neuron])
-                
-                # reliable_cell: (len(radians), all_selective_neurons )
-                reliable_cells = np.array(reliable_cells).T
-
-                if len(reliable_cells)>0:
-                    activity_popu.append(reliable_cells)
-                else:
-                    activity_off[popu] += 1 
+            activity_popu, activity_off_sim = Sn.selectivity_eva_intrasim(activity_not_reliable)
+            activity_off += activity_off_sim
 
             if len(activity_popu) == 4:
                 # returning the selectivities of the 4 neuron types
@@ -240,101 +231,135 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                 os_paper_mean_all.append(os_paper_mean)
                 os_paper_std_all.append(os_paper_std)
 
-    # storage of only 0-degree activities
-    activity =  np.asarray(all_activity_data)           # activity:    (simulation, radians, timesteps, neurons)
-    weights  =  np.asarray(all_weights_data)            # weights:     (simulation, radians, timesteps, postsyn, presyn))
+    # ---------------- simulations end here ----------------
+    ################## evaluation over all simulations ##################
 
-    ################## selectivity evaluation over all simulations ##################
-    # all vectors: (sim, neuron type (4))
-    if os_mean_all != []:
-        os_mean_data = np.mean(np.array(os_mean_all),axis=0)
-        os_std_data = np.std(np.array(os_mean_all), axis=0)
-        os_std_sim_data = np.mean(np.array(os_std_all), axis=0)
-
-        ds_mean_data = np.mean(np.array(ds_mean_all), axis=0)
-        ds_std_data = np.std(np.array(ds_mean_all), axis=0)
-        ds_std_sim_data = np.mean(np.array(ds_std_all), axis=0)
-
-        os_paper_mean_data = np.mean(np.array(os_paper_mean_all), axis=0)
-        os_paper_std_data = np.std(np.array(os_paper_mean_all), axis=0)
-        os_paper_std_sim_data = np.mean(np.array(os_paper_std_all), axis=0)
-
-        if os_mean_data[1] > 0.00001 and ds_mean_data[1] > 0.00001:
-            os_rel = (os_mean_data[0] - os_mean_data[1]) / (os_mean_data[0] + os_mean_data[1])
-            ds_rel = (ds_mean_data[0] - ds_mean_data[1]) / (ds_mean_data[0] + ds_mean_data[1])
-            os_paper_rel = (os_paper_mean_data[0] - os_paper_mean_data[1]) / (
-                        os_paper_mean_data[0] + os_paper_mean_data[1])
-    else:
-        os_mean_data = os_std_data = ds_mean_data = ds_std_data = os_paper_mean_data = \
-        os_paper_std_data = os_std_sim_data = ds_std_sim_data = os_paper_std_sim_data = \
-        [0,0,0,0]
-
-    # lists of 4, each repesenting a neuron type
-    a_mean_data = np.mean(np.array(a_mean_all), axis=0)
-    a_std_data = np.std(np.array(a_mean_all), axis=0)
-    a_std_sim_data = np.mean(np.array(a_std_all), axis=0)
-
-    ################## Information and evaluation data storage ##################
+    selectivity_data, rel_data = Sn.selectivity_eva_all(  os_mean_all, os_std_all, 
+                                                ds_mean_all, ds_std_all, 
+                                                os_paper_mean_all, os_paper_std_all,
+                                                a_mean_all,  a_std_all)
 
     # weight config evaluation
-    weight_mat = Sn.weight_eva(weights=weights)
+    weights_eval_all  =  np.asarray(weights_eva_list)            # weights:     (sim * radians, 50, postsyn, presyn))
+    weight_data = Sn.weight_eva(weights=weights_eval_all, 
+                                initial_weights=np.asarry(ini_weights_list))
     
-    mat_header = ['CS-CS', 'CS-CC', 'CS-PV', 'CS-SST',
+    ################## Information and evaluation data storage ##################
+    
+    # weight evaluation metric
+    weight_col = ['CS-CS', 'CS-CC', 'CS-PV', 'CS-SST',
                     'CC-CS', 'CC-CC', 'CC-PV', 'CC-SST',
                     'PV-CS', 'PV-CC', 'PV-PV', 'PV-SST',
                     'SST-CS', 'SST-CC', 'SST-PV', 'SST-SST']
-    
-    indlist = [ 'Mean_weight',  'Std_mean_W',     'Mean_std_W',      
-                'Mean_Wdel',    'Std_mean_Wdel',  'Mean_std_Wdel']
-
-    weight_df = pd.DataFrame(weight_mat, columns=mat_header, index = indlist)
+    weight_ind = [  'Mean_weight',  'Std_mean_W',     'Mean_std_W',      
+                    'Mean_Wdel',    'Std_mean_Wdel',  'Mean_std_Wdel']
+    weight_df = pd.DataFrame(weight_data, columns=weight_col, index = weight_ind)
 
     # Selectivity matrix over simulation
-    selectivity_header = ['CS', 'CC', 'PV', 'SST']
+    selectivity_col = ['CS', 'CC', 'PV', 'SST']
     selectivity_ind = [ 'Mean_act', 'Std_of_mean',  'Mean_std',      # a_mean_data, a_std_data, a_std_sim_data
                         'Mean_of_OS',  'Std_mean_OS',  'Mean_std_OS', 
                         'Mean_of_DS',  'Std_mean_DS',  'Mean_std_DS', 
-                        'Mean_of_OS_p','Std_mean_OS_p','Mean_std_OS_p', 
-                        ]
-    selectivity_mat = np.concatenate((  a_mean_data,    a_std_data,     a_std_sim_data, 
-                                        os_mean_data,   os_std_data,    os_std_sim_data, 
-                                        ds_mean_data,   ds_std_data,    ds_std_sim_data,
-                                        os_paper_mean_data, os_paper_std_data, os_paper_std_sim_data
-                                        )).reshape(-1,4)
-    selectivity_df = pd.DataFrame(selectivity_mat, index=selectivity_ind, columns=selectivity_header)
+                        'Mean_of_OS_p','Std_mean_OS_p','Mean_std_OS_p']
+    selectivity_df = pd.DataFrame(selectivity_data, index=selectivity_ind, columns=selectivity_col)
 
-    # final summarization figure
-    summary_info = {"Real_OS": os_rel, "Real_DS": ds_rel, "Real_OS_paper": os_paper_rel, 
-                    'nan_counter': nan_counter,'not_eq_counter': not_eq_counter, 'activity_off': activity_off}
+    # summary info
+    summary_info = {
+        "Real_OS": rel_data[0], 
+        "Real_DS": rel_data[1], 
+        "Real_OS_paper": rel_data[2], 
+        'nan_counter': nan_counter,
+        'not_eq_counter': not_eq_counter, 
+        'activity_off': activity_off}
 
-    # basic configuration dataframe 
-    meta_data_header = [   'CC_input', 'CS_input', 'PV_input', 'SST_input', 
+    # basic configuration  
+    meta_data_ind = ['CC_input', 'CS_input', 'PV_input', 'SST_input', 
                         'tau', 'tau_learn', 'tau_threshold', 
                         "learning_rule", "training_mode", "training_pattern"]
-
-    meta_data_mat = p.amplitude + \
+    meta_data_data = p.amplitude + \
                 [Sn.tau] + [Sn.tau_learn] + [Sn.tau_threshold] + \
                 [p.learning_rule] + [p.neurons] + [p.phase_key]
+    meta_data = pd.DataFrame(meta_data_data, index= meta_data_ind, columns = ['value'])
 
-    meta_data = pd.DataFrame(meta_data_mat, index= meta_data_header, columns = ['value'])
-
-    # returned product: A dictionary storing all relevant information
+    # returned: A dictionary storing all relevant information
     sim_dic = {
         "weight_df":        weight_df,
         "selectivity_df":   selectivity_df,
         "summary_info":     summary_info,
         "meta_data":        meta_data,
-        # "weights":          weights, 
-        # "activity":         activity,
     }
-    
-    # plotting the simulation graphs
-    if evaluation_mode == True:
-        
-        # Adding on the loss value form objective function
-        sim_dic['loss_value'] = helper.lossfun(sim_dic, config = p)
 
-        # plot activity and weight results
+    ################## visualization under visualization_mode ##################
+    # plotting the simulation graphs
+    if visualization_mode:
+        # processing plotting data for visualization
+        activity_plot = np.asarray(activity_plot_list)
+        weights_plot =  np.asarray(weights_plot_list)
+
+        # updating the data storing dictionary
+        sim_dic.update({
+            'loss_value':       helper.lossfun(sim_dic, config = p), 
+            'activity_plot':    activity_plot,
+            'weights_plot':     weights_plot
+        })
+        
+        color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
+        DateFolder, time_id = helper.create_data_dir(config=p)
+
+        ##### bar plot for weight change and final weight value #####
+        fig_w, ax_w = plt.subplots(2,1)
+        x_pos_w = np.arange(weight_df.shape[0])
+        title_list_w = ['Mean weight','$\delta$ weight']
+        for i in range(2):
+            ax_w[i].bar(x_pos_w, weight_df.iloc[3*i,], 
+                        yerr = weight_df.loc[3*i+2,], color = np.repeat(color_list, 4),
+                        align='center', alpha=0.5, ecolor='black')
+            ax_w[i].set_ylabel(title_list_w[i])
+            ax_w[i].set_xticks(x_pos_w)
+            ax_w[i].set_xticklabels(weight_df.columns)
+            ax_w[i].set_title(title_list_w[i])
+            ax_w[i].yaxis.grid(True)
+        
+        fig_s.set_size_inches(20, 12, forward=True)
+        fig_w.tight_layout(pad=1.0)
+        fig_w.suptitle(f"Weight by {p.learning_rule}")
+        fig_w.show()
+        # fig_w.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_Wei.png', dpi=100)
+
+        ##### bar plot for activity, os, ds and os_paper #####
+        fig_s, ax_s = plt.subplots(2,2)
+
+        x_pos_s = np.arange(selectivity_df.shape[0])
+        title_list_s = ['Mean activity',                'Orientational selectivity (OS)',
+                        'Directional selectivity (DS)', 'Orientational selectivity_p (OS_p)']
+        
+        for i in range(4):
+            axs = ax_s.flatten()[i]
+            axs.bar(x_pos_s, selectivity_df.iloc[3*i,], 
+                    yerr = selectivity_df.loc[3*i+2,], color = color_list,
+                    align='center', alpha=0.5, ecolor='black')
+            axs.set_ylabel(title_list_s[i])
+            axs.set_xticks(x_pos_s)
+            axs.set_xticklabels(selectivity_df.columns)
+            axs.set_title(title_list_s[i])
+            axs.yaxis.grid(True)
+        
+        fig_s.set_size_inches(20, 22, forward=True)
+        fig_s.tight_layout(pad=1.0)
+        fig_s.suptitle(f"Activity by {p.learning_rule}")
+        fig_s.show()
+        # fig_s.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_Act_OS.png', dpi=100)
+        
+        ##### TODO: activity and weight plot with error bar #####
+
+        # Just do a dot plot and line them for the final product
+
+        ##### TODO: activity and weight distribution #####
+        activity_dis = activity_plot[:, -1]
+        weights_dis = weights_plot[:, -1]
+
+
+        '''
         if p.sim_number <6:
             for isim in range(p.sim_number):
                 Sn.plot_activity(activity=activity, sim=isim, saving=False)
@@ -344,17 +369,20 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             for isim in choice:
                 Sn.plot_activity(activity=activity, sim=isim, saving=False)
                 Sn.plot_weights(weights=weights, sim=isim, saving=False)
-        
-        # saving the dictionary files
-        pkltitle = helper.create_data_dir(config=p)
-        filepath = Path(pkltitle)  
+        '''
+
+        ######## saving the results ########
+        filepath = Path(f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}.pkl')  
         filepath.parent.mkdir(parents=True, exist_ok=True)
         with open(filepath, 'wb') as f:
             pickle.dump(sim_dic, f)
-
-        # To load the dictionary:
-        # with open("path/to/pickle.pkl", 'rb') as f:
-        #    loaded_dict = pickle.load(f)
+        
+        """
+        To load the dictionary:
+        with open("path/to/pickle.pkl", 'rb') as f:
+           loaded_dict = pickle.load(f)
+        """
+       
 
     return sim_dic
 
@@ -367,12 +395,11 @@ def objective(params):
                 temporalF=p.temporalF,
                 spatialPhase=p.spatialPhase,
                 learning_rule= p.learning_rule, 
-                number_steps_before_learning =p.number_steps_before_learning, 
                 Ttau =p.Ttau,
                 tau = p.tau, 
                 tau_learn = p.tau_learn, 
                 tau_threshold=p.tau_threshold,
-                evaluation_mode=False) 
+                visualization_mode=False) 
     
     # return the loss function value
     lossval = helper.lossfun(sim_dic, config=p)
@@ -388,18 +415,17 @@ def stable_sim_objective(params):
                 temporalF=p.temporalF,
                 spatialPhase=p.spatialPhase,
                 learning_rule= p.learning_rule, 
-                number_steps_before_learning =p.number_steps_before_learning, 
                 Ttau =p.Ttau,
                 tau = p.tau, 
                 tau_learn = tau_learn, 
                 tau_threshold=tau_threshold_fac*tau_learn,
-                evaluation_mode=False) 
+                visualization_mode=False) 
     
-    # TODO: Change the stable simulation loss function input if needed in the future
+    # FIXME: Change the stable simulation loss function input if needed in the future
     # lossval = helper.Stable_sim_loss(activity=activity, Max_act=20)
     return ...
 
-#%% Simulation started once for trail
+#%% Simulation with default parameter for visualization
 
 if __name__ == "__main__":
     
@@ -415,7 +441,7 @@ if __name__ == "__main__":
                     tau=p.tau,
                     tau_learn=p.tau_learn,
                     tau_threshold=p.tau_threshold,
-                    evaluation_mode=True,)
+                    visualization_mode=True,)
 
 #%%  Hyper parameter tuning
 if __name__ == "__main__":            
@@ -498,7 +524,7 @@ if __name__ == "__main__":
                 tau = p.tau, 
                 tau_learn = tpe_best["tau_learn"], 
                 tau_threshold=tpe_best["tau_threshold_fac"]*tpe_best["tau_learn"],
-                evaluation_mode=False) 
+                visualization_mode=False) 
         
         #Saving the data after running
         with open(f'data/{DateFolder}/Tuning_Tau_Activity_weight.npy', 'wb') as f:

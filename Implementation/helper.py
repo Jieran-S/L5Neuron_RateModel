@@ -279,9 +279,9 @@ def calculate_selectivity(activity_popu):
     # all returned vectors are a list of 4, each of one type of neuron
     return (os_mean_data, os_std_data,ds_mean_data,ds_std_data,os_paper_mean_data,os_paper_std_data)
 
-def dir_eva(activity, N):
+def selectivity_eva(activity, N):
     '''
-    input: activity: 3D matrix (radians, Tstep, N)
+    input: activity: 3D matrix (radians, Tstep/n, N)
 
     return:
     Amean:      overall mean of activities (4,) in different neuron types
@@ -402,12 +402,10 @@ def create_data_dir(config):
     """
 
     p = config
-
     now = datetime.now() # current date and time
     DateFolder = now.strftime('%m_%d')
     if os.path.exists(f'data/{DateFolder}') == False:
         os.makedirs(f'data/{DateFolder}')
     time_id = now.strftime("%m%d_%H:%M")
-    pkltitle = f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}.pkl'
 
-    return pkltitle
+    return DateFolder, time_id
