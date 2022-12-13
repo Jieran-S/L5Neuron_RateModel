@@ -48,7 +48,7 @@ phase_patterns = {
 phase_key = list(phase_patterns)[0]
 phase_list = phase_patterns[phase_key]                    # training all neurons at all time
 # phase_list =  np.repeat(['CS','CC','Rest'], 10)     # specific pattern
-
+ 
 
 # target synaptic weight matrix of CS, CC, PV and SST neurons 
 # Campognola 2022 PSP amplitude: https://www.science.org/doi/epdf/10.1126/science.abj5861 
