@@ -249,16 +249,16 @@ class SimpleNetwork:
         Aneuron:    a list of 4, each of which is (radians, neuron_number)
         '''
         N = self.N              # neuron composition
-        Eva_step = 500/n        # number of time steps taken in evaluation
+        Eva_step = int(500/n)        # number of time steps taken in evaluation
 
         Amean = [np.mean(activity[:, -Eva_step:, :N[0]]),
                             np.mean(activity[:, -Eva_step:, sum(N[:1]):sum(N[:2])]),
                             np.mean(activity[:, -Eva_step:, sum(N[:2]):sum(N[:3])]),
                             np.mean(activity[:, -Eva_step:, sum(N[:3]):sum(N)])]
-        Astd = [np.std(activity[:, -Eva_step:, :N[0]]),
-                            np.std(activity[:, -Eva_step:, sum(N[:1]):sum(N[:2])]),
-                            np.std(activity[:, -Eva_step:, sum(N[:2]):sum(N[:3])]),
-                            np.std(activity[:, -Eva_step:, sum(N[:3]):sum(N)])]
+        Astd = [np.nanstd(activity[:, -Eva_step:, :N[0]]),
+                            np.nanstd(activity[:, -Eva_step:, sum(N[:1]):sum(N[:2])]),
+                            np.nanstd(activity[:, -Eva_step:, sum(N[:2]):sum(N[:3])]),
+                            np.nanstd(activity[:, -Eva_step:, sum(N[:3]):sum(N)])]
         
         activity_cs = np.mean(activity[:, -Eva_step:, :N[0]], axis=1)
         activity_cc = np.mean(activity[:, -Eva_step:, sum(N[:1]):sum(N[:2])], axis=1)
@@ -266,7 +266,7 @@ class SimpleNetwork:
         activity_sst = np.mean(activity[:, -Eva_step:, sum(N[:3]):sum(N)], axis=1)
 
         Aneuron = [activity_cs, activity_cc, activity_pv, activity_sst]
-
+ 
         return (Amean, Astd, Aneuron)
 
     def weight_eva(self, weights, initial_weights):
@@ -294,32 +294,30 @@ class SimpleNetwork:
             N: neuron composition
 
             Output
-            a mean matrix (sim, 16,16)
-            a std matrix (sim, 16,16)
+            a mean matrix (sim, 4,4)
+            a std matrix (sim, 4,4)
             """
             W_std = W_mean = np.empty([weights_vec.shape[0], len(N), len(N)])
 
-            for sim in range(weights_vec.shape[0]):
-                # weights for different post-syn
-                weight_cs = weights_vec[:, :N[0], :]
-                weight_cc = weights_vec[:, sum(N[:1]):sum(N[:2]), :]
-                weight_pv = weights_vec[:, sum(N[:2]):sum(N[:3]), :]
-                weight_sst = weights_vec[:, sum(N[:3]):sum(N), :]
-                weights_vector = [weight_cs, weight_cc, weight_pv, weight_sst]
+            # weights for different post-syn
+            weights_vector=[weights_vec[:, :N[0], :],                  #CS
+                            weights_vec[:, sum(N[:1]):sum(N[:2]), :],  #CC
+                            weights_vec[:, sum(N[:2]):sum(N[:3]), :],  #PV
+                            weights_vec[:, sum(N[:3]):sum(N), :]]      #SST
 
-                # row-based post-syn situation
-                for j, wei in enumerate(weights_vector):
-                    # mean value for expression
-                    W_mean[sim, j, : ] = [np.mean(wei[:, :N[0]]),
-                                    np.mean(wei[:, sum(N[:1]):sum(N[:2])]),
-                                    np.mean(wei[:, sum(N[:2]):sum(N[:3])]),
-                                    np.mean(wei[:, sum(N[:3]):sum(N)]) ]
+            # row-based post-syn situation
+            for j, wei in enumerate(weights_vector):    # wei: (sim, N[i], N)
+                # mean value for expression
+                W_mean[:, j, : ] = np.array([   np.mean(wei[:, :, :N[0]], axis = (1,2)),
+                                                np.mean(wei[:, :, sum(N[:1]):sum(N[:2])], axis = (1,2)),
+                                                np.mean(wei[:, :, sum(N[:2]):sum(N[:3])], axis = (1,2)),
+                                                np.mean(wei[:, :, sum(N[:3]):sum(N)], axis = (1,2)) ]).T
 
-                    # neuron-wise variance (Same condition directly calculate variance)
-                    W_std[sim, j, : ] = [np.std(wei[:, :N[0]]),
-                                    np.std(wei[:, sum(N[:1]):sum(N[:2])]),
-                                    np.std(wei[:, sum(N[:2]):sum(N[:3])]),
-                                    np.std(wei[:, sum(N[:3]):sum(N)]) ]
+                # neuron-wise variance (Same condition directly calculate variance)
+                W_std[:, j, : ] = np.array([np.nanstd(wei[:, :, :N[0]], axis = (1,2)),
+                                            np.nanstd(wei[:, :, sum(N[:1]):sum(N[:2])], axis = (1,2)),
+                                            np.nanstd(wei[:, :, sum(N[:2]):sum(N[:3])], axis = (1,2)),
+                                            np.nanstd(wei[:, :, sum(N[:3]):sum(N)], axis = (1,2)) ]).T
 
             return W_mean, W_std
 
@@ -328,21 +326,21 @@ class SimpleNetwork:
         
         # take the final time
         weight_fin = np.mean(weights[:, -25:], axis = 1)
-        W_mean, W_std = weight_summary(weight_fin, N)
+        W_mean_sim, W_std_sim = weight_summary(weight_fin, N)
 
         # take the change
         weight_delta = weight_fin - initial_weights
         W_delta, W_dstd = weight_summary(weight_delta, N)
 
         # Taking mean over simulation
-        W_mean = np.mean(W_mean, axis = 0)
-        W_std_mean = np.mean(W_std, axis = 0)
+        W_mean = np.mean(W_mean_sim, axis = 0)
+        W_std_mean = np.mean(W_std_sim, axis = 0)
         W_dmean = np.mean(W_delta, axis = 0)
         W_dstd_mean = np.mean(W_dstd, axis = 0)
         
         # taking the std of the mean value
-        W_mean_std = np.std(W_mean, axis = 0)
-        W_dmean_std = np.std(W_delta, axis = 0)
+        W_mean_std = np.nanstd(W_mean_sim, axis = 0)
+        W_dmean_std = np.nanstd(W_delta, axis = 0)
 
         # Average over all simulations
         return np.stack([W_mean, W_mean_std, W_std_mean,
@@ -398,7 +396,7 @@ class SimpleNetwork:
 
         def extra_info(mean_all, std_all):
             mean_data = np.mean(np.array(mean_all),axis=0)
-            std_data = np.std(np.array(mean_all), axis=0)
+            std_data = np.nanstd(np.array(mean_all), axis=0)
             std_sim_data = np.mean(np.array(std_all), axis=0)
             
             return mean_data, std_data, std_sim_data

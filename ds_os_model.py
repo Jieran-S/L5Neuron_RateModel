@@ -15,6 +15,7 @@ sys.path.append(abspath(''))
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pickle
 import hyperopt 
 from joblib import Parallel, delayed
@@ -77,16 +78,17 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     weights_eva_list: store last 50 steps of weights across simulation for evaluation
     ini_weights_list: store initial weights info across all simulation for evaluation
     """
-    activity_plot_list = []     # (sim, radians, timestep/n, neurons)
-    weights_plot_list = []      # (sim * radians, timestep/n, postsyn, presyn)
-    weights_eva_list = []       # (sim * radians, 60, postsyn, presyn)
-    ini_weights_list = []           # (sim * radians, postsyn, presyn)
+    activity_plot_list = []     # (sim, radians, 50, neurons)
+    weights_plot_list = []      # (sim*radians, 50, postsyn, presyn)
+    weights_eva_list = []       # (sim*radians, 60, postsyn, presyn)
+    ini_weights_list = []       # (sim*radians, postsyn, presyn)
 
     ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
 
         # store activities per simulation for intra-simulation evaluation
         activity_eval_sim = []  # (radians, timestep/n, neurons)
+        activity_plot_sim = [] # (radians, 50, neurons)
 
         ########## weight initialization ##########
         w_initial = np.abs(w_target)
@@ -148,14 +150,15 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
             # run simulation: raw_activity:(tstep, neurons); raw_weights:(tstep, postsyn, presyn)
             raw_activity, raw_weights = Sn.run(inputs, initial_values, simulate_till_converge = True)
-            
+            raw_activity = np.asarray(raw_activity)
+            raw_weights  = np.asarray(raw_weights)
             ############ data quality checking ############
 
             # mean period of input, change according to termporalF
             n = 25
             # for non-steady input, take only mean for downstream analysis
-            activity_mean = np.mean(np.asarray(raw_activity).reshape(-1,n, raw_activity.shape[-1]), axis = 1)
-            weights_mean  = np.mean(np.asarray(raw_weights).reshape(-1, n, raw_weights.shape[-2], raw_weights.shape[-1]), axis = 1)
+            activity_mean = np.mean(raw_activity.reshape(-1,n, raw_activity.shape[-1]), axis = 1)
+            weights_mean  = np.mean(raw_weights.reshape(-1, n, raw_weights.shape[-2], raw_weights.shape[-1]), axis = 1)
 
             # check nan
             if np.isnan(activity_mean[-1]).all():
@@ -193,21 +196,20 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             weights_eva_list.append(weights_eval)        
             ini_weights_list.append(W_rec)          
             
-            # for visualization (only for visualization_mode)
-            if visualization_mode:
+            if visualization_mode: # For visualization only
                 # Slicing the timesteps, leaving only 50 of them for plotting
                 plot_steps = 50
-                plot_interval = activity_mean.shape[0]//(plot_steps-1) - 1 
-                plot_begin    = activity_mean.shape[0]%(plot_steps-1)
-                activity_plot = activity_mean[plot_begin::plot_interval]
-                weights_plot  = weights_mean[plot_begin::plot_interval]
+                plot_interval = activity_mean.shape[0]//(plot_steps-1)
+                plot_begin    = activity_mean.shape[0]%(plot_steps-1) - 1
+
+                activity_plot_sim.append(activity_mean[plot_begin::plot_interval])     # appending the activity of each set of 4 orientations
+                weights_plot_list.append(weights_mean[plot_begin::plot_interval])      # appending all possible weights
 
         # ------ radians loop ends here ------
         activity_eval_sim = np.asarray(activity_eval_sim)           # activity_eval_sim:    (radians, 600/n, neurons)
         
         if visualization_mode:
-            activity_plot_list.append(np.asarray(activity_plot))        # activity_plot_list:    (simulation, radians, plot_steps, neurons)
-            weights_plot_list.append(np.asarray(weights_plot))
+            activity_plot_list.append(np.asarray(activity_plot_sim))        # activity_plot_list: (simulation, radians, 50, neurons)
 
         ################## Intrasimulation selectivity evaluation ##################
         if success: 
@@ -234,15 +236,15 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     # ---------------- simulations end here ----------------
     ################## evaluation over all simulations ##################
 
-    selectivity_data, rel_data = Sn.selectivity_eva_all(  os_mean_all, os_std_all, 
-                                                ds_mean_all, ds_std_all, 
-                                                os_paper_mean_all, os_paper_std_all,
-                                                a_mean_all,  a_std_all)
+    selectivity_data, rel_data = Sn.selectivity_eva_all(os_mean_all, os_std_all, 
+                                                        ds_mean_all, ds_std_all, 
+                                                        os_paper_mean_all, os_paper_std_all,
+                                                        a_mean_all,  a_std_all)
 
     # weight config evaluation
     weights_eval_all  =  np.asarray(weights_eva_list)            # weights:     (sim * radians, 50, postsyn, presyn))
     weight_data = Sn.weight_eva(weights=weights_eval_all, 
-                                initial_weights=np.asarry(ini_weights_list))
+                                initial_weights=np.asarray(ini_weights_list))
     
     ################## Information and evaluation data storage ##################
     
@@ -288,103 +290,244 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         "summary_info":     summary_info,
         "meta_data":        meta_data,
     }
-
+    
     ################## visualization under visualization_mode ##################
-    # plotting the simulation graphs
-    if visualization_mode:
-        # processing plotting data for visualization
-        activity_plot = np.asarray(activity_plot_list)
-        weights_plot =  np.asarray(weights_plot_list)
-
-        # updating the data storing dictionary
-        sim_dic.update({
-            'loss_value':       helper.lossfun(sim_dic, config = p), 
-            'activity_plot':    activity_plot,
-            'weights_plot':     weights_plot
-        })
-        
+    # A copy of those graphs in function is noted in the visualization.py in case we need to extract them
+    if visualization_mode == False:
+        fig_size = (10,11)
         color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
         DateFolder, time_id = helper.create_data_dir(config=p)
 
-        ##### bar plot for weight change and final weight value #####
-        fig_w, ax_w = plt.subplots(2,1)
-        x_pos_w = np.arange(weight_df.shape[0])
-        title_list_w = ['Mean weight','$\delta$ weight']
+        ########## bar plot for weight change and final weight value ##########
+        vis.weights_barplot(weight_df, 
+                        color_list = color_list, 
+                        config = p, saving = False)
+        '''
+        fig_w, ax_w = plt.subplots(1,2, figsize=(15, 5))
+        x_pos_w = np.arange(weight_df.shape[1])
+        title_list_w = ['Mean weight','$\Delta$weight']
         for i in range(2):
-            ax_w[i].bar(x_pos_w, weight_df.iloc[3*i,], 
-                        yerr = weight_df.loc[3*i+2,], color = np.repeat(color_list, 4),
+            ax_w[i].bar(x_pos_w, list(weight_df.iloc[3*i,]), 
+                        yerr = list(weight_df.iloc[3*i+2,]), color = np.repeat(color_list, 4),
                         align='center', alpha=0.5, ecolor='black')
             ax_w[i].set_ylabel(title_list_w[i])
             ax_w[i].set_xticks(x_pos_w)
             ax_w[i].set_xticklabels(weight_df.columns)
             ax_w[i].set_title(title_list_w[i])
             ax_w[i].yaxis.grid(True)
-        
-        fig_s.set_size_inches(20, 12, forward=True)
+            ax_w[i].margins(x=0.02)
+            plt.setp(ax_w[i].get_xticklabels(), rotation=30, horizontalalignment='right')
+
         fig_w.tight_layout(pad=1.0)
-        fig_w.suptitle(f"Weight by {p.learning_rule}")
+        fig_w.suptitle(f"Weight by {p.learning_rule}", y = 1)
         fig_w.show()
-        # fig_w.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_Wei.png', dpi=100)
+        # fig_w.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_wei.png', dpi=100)
+        '''
 
-        ##### bar plot for activity, os, ds and os_paper #####
-        fig_s, ax_s = plt.subplots(2,2)
+        ########## bar plot for activity, os, ds and os_paper ##########
+        vis.selectivity_barplot(selectivity_df, 
+                                fig_size = fig_size, color_list = color_list, 
+                                config = p, saving = False)
+        '''
+        fig_s, ax_s = plt.subplots(2,2, figsize=fig_size)
 
-        x_pos_s = np.arange(selectivity_df.shape[0])
+        x_pos_s = np.arange(selectivity_df.shape[1])
         title_list_s = ['Mean activity',                'Orientational selectivity (OS)',
                         'Directional selectivity (DS)', 'Orientational selectivity_p (OS_p)']
         
         for i in range(4):
             axs = ax_s.flatten()[i]
-            axs.bar(x_pos_s, selectivity_df.iloc[3*i,], 
-                    yerr = selectivity_df.loc[3*i+2,], color = color_list,
+            axs.bar(x_pos_s, list(selectivity_df.iloc[3*i,]), 
+                    yerr = list(selectivity_df.iloc[3*i+2,]), color = color_list,
                     align='center', alpha=0.5, ecolor='black')
             axs.set_ylabel(title_list_s[i])
             axs.set_xticks(x_pos_s)
             axs.set_xticklabels(selectivity_df.columns)
             axs.set_title(title_list_s[i])
             axs.yaxis.grid(True)
+            axs.margins(x=0.02)
         
-        fig_s.set_size_inches(20, 22, forward=True)
         fig_s.tight_layout(pad=1.0)
-        fig_s.suptitle(f"Activity by {p.learning_rule}")
+        fig_s.suptitle(f"Activity by {p.learning_rule}", y = 1)
         fig_s.show()
-        # fig_s.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_Act_OS.png', dpi=100)
+        # fig_s.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_act_OS.png', dpi=100)
+        '''
+
+        ########## activity plot with error bar ##########
+        line_col    = ['darkblue','deeppink','seagreen','fuchsia']
+        neuron_list = ['CS','CC','PV','SST']
+
+        # prepare the data
+        mean_act_sim = np.mean(np.asarray(activity_plot_list), axis = 0)     # (radian, 50 , neurons)
+        act_list    = [ mean_act_sim[:, :, :N[0]],                  # CS 
+                        mean_act_sim[:, :, sum(N[:1]):sum(N[:2])],  # CC 
+                        mean_act_sim[:, :, sum(N[:2]):sum(N[:3])],  # PV 
+                        mean_act_sim[:, :, sum(N[:3]):sum(N)] ]     # SST
+        mean_act_neuron = np.asarray([np.mean(act, axis = -1) for act in act_list])     # (neuron types, radians, 50)
+        error_act_neuron= np.asarray([np.nanstd(act, axis = -1)  for act in act_list])     # (neuron types, radians, 50)
+        act_plot_dic = {
+            "mean_act": mean_act_neuron,
+            "std_act": error_act_neuron,
+            "structure": "(neuron_types, radians, plot_steps(50))"
+        }
+
+        # start the plot
+        vis.activity_plot(act_plot_dic, 
+                        color_list = color_list, fig_size = fig_size,
+                        neuron_list = neuron_list, line_col = line_col,
+                        config = p, saving = False)
+        '''
+        fig_ap, ax_ap = plt.subplots(2,2, figsize=fig_size)    # 4 input orientations
+        x_plot = np.linspace(0, Sn.Ttau, plot_steps)
         
-        ##### TODO: activity and weight plot with error bar #####
+        for i in range(4):  
+            axs_ap = ax_ap.flatten()[i]
+            act = mean_act_neuron[:,i]   # activities of same radian (neurontypes, 50)
+            err = error_act_neuron[:,i]  # std of the same radian
 
-        # Just do a dot plot and line them for the final product
+            for j in range(act.shape[0]):
+                axs_ap.plot(x_plot, act[j], 
+                            color = line_col[j], label = neuron_list[j])
+                axs_ap.fill_between(x_plot, act[j]-err[j], act[j]+err[j],
+                                    alpha=0.2, facecolor= color_list[j])
+            axs_ap.margins(x=0)
+            axs_ap.set_ylabel("Firing rates")
+            axs_ap.set_xlabel("Time steps")
+            axs_ap.set_title(f"Degree: {p.degree[i]}")
 
-        ##### TODO: activity and weight distribution #####
-        activity_dis = activity_plot[:, -1]
-        weights_dis = weights_plot[:, -1]
-
-
+        handles_a, labels_a = axs_ap.get_legend_handles_labels()
+        by_label_a = dict(zip(labels_a, handles_a))
+        fig_ap.legend( by_label_a.values(), 
+                    by_label_a.keys(),
+                    loc = 'lower center', 
+                    ncol = 4, bbox_to_anchor=(0.5, -0.02))
+        fig_ap.tight_layout(pad=1.0)
+        fig_ap.suptitle(f"Activity by {p.learning_rule}", y=1)
+        fig_ap.show()
+        # fig_ap.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_plot_act.png', dpi=100)
         '''
-        if p.sim_number <6:
-            for isim in range(p.sim_number):
-                Sn.plot_activity(activity=activity, sim=isim, saving=False)
-                Sn.plot_weights(weights=weights, sim=isim, saving=False)
-        else:
-            choice = np.random.choice(np.arange(p.sim_number), 2, replace=False)
-            for isim in choice:
-                Sn.plot_activity(activity=activity, sim=isim, saving=False)
-                Sn.plot_weights(weights=weights, sim=isim, saving=False)
+
+        ########## weight plot with error bar ##########
+        # prepare the data
+        mean_weights_sim = np.mean(np.asarray(weights_plot_list), axis = 0)  #(50, postsyn, presyn)
+        mean_weights = std_weights = np.empty((plot_steps, 4, 4))   
+        weights_vector = [  mean_weights_sim[:, :N[0], :],                  #CS
+                            mean_weights_sim[:, sum(N[:1]):sum(N[:2]), :],  #CC
+                            mean_weights_sim[:, sum(N[:2]):sum(N[:3]), :],  #PV
+                            mean_weights_sim[:, sum(N[:3]):sum(N), :]]      #SST
+        for ind,wei in enumerate(weights_vector):
+            prewei_vec = [  wei[:, :, :N[0]],
+                            wei[:, :, sum(N[:1]):sum(N[:2])],
+                            wei[:, :, sum(N[:2]):sum(N[:3])],
+                            wei[:, :, sum(N[:3]):sum(N)]]
+            # assigning the presynaptic neurons to corresponding columns
+            mean_weights[:, ind, :] = np.array([np.mean(x, axis =(1,2)) for x in prewei_vec]).T
+            std_weights[:, ind, :] = np.array([np.nanstd(x, axis =(1,2)) for x in prewei_vec]).T
+        wei_plot_dic = {
+            "mean_weights": mean_weights,
+            "std_weights": std_weights,
+            "structure": "(plot_steps(50), postsyn, presyn)"
+        }
+
+        vis.weights_plot(wei_plot_dic, 
+                        color_list = color_list, fig_size = fig_size,
+                        neuron_list = neuron_list, line_col = line_col,
+                        config = p, saving = False)        
+        '''
+        # starting the plot
+        fig_wp, ax_wp = plt.subplots(2,2, figsize=fig_size)    # 4 post-synaptic neurons
+        label_list_w = ['cs pre', 'cc pre', 'pv pre', 'sst pre']
+
+        for i in range(4):           # 4 postsyn neurons
+            axs_wp = ax_wp.flatten()[i]
+            weis = mean_weights[:,i]   # postsynaptic neurons, (50, presyn)
+            err = std_weights[:,i]    
+
+            for j in range(weis.shape[-1]):     
+                axs_wp.fill_between(x_plot, weis[:,j]-err[:,j], weis[:,j]+err[:,j],
+                                    alpha=0.2, facecolor= color_list[j])
+                axs_wp.plot(x_plot, weis[:,j], 
+                            color = line_col[j], label = label_list_w[j])
+                # plotting the reference line
+                axs_wp.axhline(y = p.w_compare[i,j], linewidth = 2, 
+                            color = color_list[j], linestyle = '--')
+
+            axs_wp.margins(x=0)
+            axs_wp.set_ylabel("weights")
+            axs_wp.set_xlabel("Time steps")
+            axs_wp.set_title(f"postsyn(col):{neuron_list[i]}")
+        
+        handles, labels = axs_wp.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        fig_wp.legend( by_label.values(), 
+                    by_label.keys(),
+                    loc = 'lower center', 
+                    ncol = 4, bbox_to_anchor=(0.5, -0.02))
+        fig_wp.tight_layout(pad=1.0)
+        fig_wp.suptitle(f"Weights by {p.learning_rule}", y = 1)
+        fig_wp.show()
+        # fig_wp.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_plot_wei.png', dpi=100)
         '''
 
+        ##### Activity distribution #####
+        # ??? is weight distribution necessary? 
+        # weights_dis = np.mean(mean_weights_sim[-5:,:, :], axis = 0) # (presyn, postsyn)
+        
+        # data processing: a dataframe. col: neuron types, row: neuron response sorted by orientations
+        activity_dis = [np.mean(x[:, -5:, :], axis = 1) for x in act_list]   # a list of 4, each (4*N[i],) followed by the 
+        act_ser_list = []
+        for act in activity_dis:
+            sim_char_vec = np.char.mod('%03d', np.arange(act.shape[1]))
+            # double comprehension: first iterate outer then inner loop
+            indexlist = [f'{m:03}' + x for m in p.degree for x in sim_char_vec]    
+            act_ser_list.append(pd.Series(act.flatten(), index = indexlist)) 
+
+        activity_df = pd.DataFrame({ "CS": act_ser_list[0],"CC": act_ser_list[1],
+                                    "PV": act_ser_list[2],"SST":act_ser_list[3]})
+        activity_df['Degree'] = np.repeat(p.degree, int(activity_df.shape[0]/4))
+
+        vis.activity_histogram(activity_df, 
+                            color_list = color_list, fig_size = fig_size,
+                            config = p, saving = False)        
+        '''
+        fig_ad, ax_ad = plt.subplots(2, 2, figsize=fig_size, gridspec_kw=dict(width_ratios=[1, 1]))
+        for i in range(4):
+            axs_ad = ax_ad.flatten()[i]
+            sns.histplot(activity_df, x = activity_df.columns[i], hue='Degree', kde=True, 
+                        stat="density", fill = True, alpha = 0.4, 
+                        palette = color_list, multiple="stack", 
+                        common_norm=False, ax = ax_ad.flatten()[i])
+            
+            axs_ad.margins(x=0.02)
+            axs_ad.set_xlabel("Firing rate")
+            axs_ad.set_title(f"{activity_df.columns[i]}")
+        fig_ad.tight_layout(pad=1.0)
+        fig_ad.suptitle(f"Activity distribution by {p.learning_rule}", verticalalignment = 'top', y = 1)
+        fig_ad.show()
+        # fig_ad.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_dis_act.png', dpi=100)
+        '''
+        ##### TODO: Correlation between the mean weights and its activity #####
+
+        # updating the data storing dictionary
+        sim_dic.update({
+            'loss_value':       helper.lossfun(sim_dic, config = p), 
+            'activity_plot':    act_plot_dic,
+            'weights_plot':     wei_plot_dic,
+            'activity_hist':    activity_df
+        })
+    
         ######## saving the results ########
         filepath = Path(f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}.pkl')  
         filepath.parent.mkdir(parents=True, exist_ok=True)
         with open(filepath, 'wb') as f:
             pickle.dump(sim_dic, f)
-        
-        """
+        '''
         To load the dictionary:
         with open("path/to/pickle.pkl", 'rb') as f:
            loaded_dict = pickle.load(f)
-        """
+        '''
        
-
-    return sim_dic
+    return sim_dic, activity_plot_list, weights_plot_list
 
 def objective(params):
     amplitude = [params['cc'], params['cs'], params['pv'], params['sst']]
@@ -426,17 +569,15 @@ def stable_sim_objective(params):
     return ...
 
 #%% Simulation with default parameter for visualization
-
 if __name__ == "__main__":
     
     # inputing all tunable parameters from the test.config and first run and visualize
-    sim_dic = run_simulation( Amplitude= p.amplitude,
+    sim_dic, activity_plot_list, weights_plot_list = run_simulation( Amplitude= p.amplitude,
                     Steady_input= p.steady_input,
                     spatialF=p.spatialF,
                     temporalF=p.temporalF,
                     spatialPhase=p.spatialPhase,
                     learning_rule= p.learning_rule, 
-                    number_steps_before_learning =p.number_steps_before_learning, 
                     Ttau =p.Ttau,
                     tau=p.tau,
                     tau_learn=p.tau_learn,
@@ -519,7 +660,6 @@ if __name__ == "__main__":
                 temporalF=p.temporalF,
                 spatialPhase=p.spatialPhase,
                 learning_rule= p.learning_rule, 
-                number_steps_before_learning =p.number_steps_before_learning, 
                 Ttau =p.Ttau,
                 tau = p.tau, 
                 tau_learn = tpe_best["tau_learn"], 
