@@ -266,7 +266,7 @@ class SimpleNetwork:
         activity_sst = np.mean(activity[:, -Eva_step:, sum(N[:3]):sum(N)], axis=1)
 
         Aneuron = [activity_cs, activity_cc, activity_pv, activity_sst]
-
+ 
         return (Amean, Astd, Aneuron)
 
     def weight_eva(self, weights, initial_weights):

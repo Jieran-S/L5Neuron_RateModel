@@ -350,28 +350,28 @@ def lossfun(sim_dic, config, MaxAct = 20):
     select_df = sim_dic['selectivity_df']
     Reg_factor = 0.1
 
-    # Total time variance across all simulation
-    Tvar_sum = weight_df.loc[['Tvar' in row for row in weight_df.index],].mean(axis=0).sum()
+    # Total weight variance
+    Wvar_sum = weight_df.loc['Mean_std_W',].sum()
 
     # RMSE of the final weight to the ideal weight configuration
-    Smean = weight_df.loc[['Mean' in row for row in weight_df.index],].to_numpy()
+    Smean = weight_df.loc['Mean_weight',].to_numpy()
     w_target_flat = config.w_compare.T.flatten()
     rmse = np.sqrt(np.mean(np.square(Smean - w_target_flat)))
 
     # average activity variance in each simulation, averaging them across different neuron types
-    Avar_mean = select_df.loc['Mean_of_std',].mean()
+    Avar_mean = select_df.loc['Mean_std',].mean()
 
     # Good selectivity: high os/ds_mean with low os/ds_std
-    # TODO: What is the measurement for selectivity criteria?
+    # ???: What is the measurement for selectivity criteria?
 
     # Sum of mean (over neuron type)  average (over all simulation) OS, DS and OS_paper 
-    Sel_sum = select_df.loc[['Mean_' in row for row in select_df.index],][2:].mean(axis = 1).sum()
+    Sel_sum = select_df.loc[['Mean_of_' in row for row in select_df.index],].mean(axis = 1).sum()
 
     # Sum of the mean (over neuron type) inter-simulation std of mean (of each simulation) OS, DS, OS_paper value
     Sel_std = select_df.loc[['Std_mean_' in row for row in select_df.index],].mean(axis = 1).sum()
 
     # Sum of the mean (over neuron type) intra-simulation std of OS, DS, OS_paper
-    Sel_std_sim = select_df.loc[['Mean_Std' in row for row in select_df.index],].mean(axis = 1).sum()
+    Sel_std_sim = select_df.loc[['Mean_std' in row for row in select_df.index],].mean(axis = 1).sum()
     """
     # Taking the root mean sAquare log error(RMSLE) panelty for out-of-range activity
     Activity = abs(np.mean(Activity[:, -20:, :], axis = 1).flatten() - 0.5*MaxAct)
@@ -383,7 +383,7 @@ def lossfun(sim_dic, config, MaxAct = 20):
     """
     
     # TODO: What is the scale we should multiply? 
-    return abs(10*(rmse + Sel_std + Sel_std_sim) - 5*(Sel_sum) - Reg_factor*(Avar_mean - Tvar_sum))
+    return abs(10*(rmse + Sel_std + Sel_std_sim) - 5*(Sel_sum) - Reg_factor*(Avar_mean - Wvar_sum))
     
 def Stable_sim_loss(activity, Max_act = 20): 
     '''

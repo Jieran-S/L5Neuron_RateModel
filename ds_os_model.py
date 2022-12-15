@@ -292,13 +292,17 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     }
     
     ################## visualization under visualization_mode ##################
-    # plotting the simulation graphs
-    if visualization_mode:
+    # A copy of those graphs in function is noted in the visualization.py in case we need to extract them
+    if visualization_mode == False:
+        fig_size = (10,11)
         color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
         DateFolder, time_id = helper.create_data_dir(config=p)
-        fig_size = (10,11)
 
         ########## bar plot for weight change and final weight value ##########
+        vis.weights_barplot(weight_df, 
+                        color_list = color_list, 
+                        config = p, saving = False)
+        '''
         fig_w, ax_w = plt.subplots(1,2, figsize=(15, 5))
         x_pos_w = np.arange(weight_df.shape[1])
         title_list_w = ['Mean weight','$\Delta$weight']
@@ -314,14 +318,17 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             ax_w[i].margins(x=0.02)
             plt.setp(ax_w[i].get_xticklabels(), rotation=30, horizontalalignment='right')
 
-        fig_s.set_size_inches(20, 12, forward=True)
         fig_w.tight_layout(pad=1.0)
         fig_w.suptitle(f"Weight by {p.learning_rule}", y = 1)
         fig_w.show()
         # fig_w.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_wei.png', dpi=100)
-
+        '''
 
         ########## bar plot for activity, os, ds and os_paper ##########
+        vis.selectivity_barplot(selectivity_df, 
+                                fig_size = fig_size, color_list = color_list, 
+                                config = p, saving = False)
+        '''
         fig_s, ax_s = plt.subplots(2,2, figsize=fig_size)
 
         x_pos_s = np.arange(selectivity_df.shape[1])
@@ -344,9 +351,12 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         fig_s.suptitle(f"Activity by {p.learning_rule}", y = 1)
         fig_s.show()
         # fig_s.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_act_OS.png', dpi=100)
-        
+        '''
 
         ########## activity plot with error bar ##########
+        line_col    = ['darkblue','deeppink','seagreen','fuchsia']
+        neuron_list = ['CS','CC','PV','SST']
+
         # prepare the data
         mean_act_sim = np.mean(np.asarray(activity_plot_list), axis = 0)     # (radian, 50 , neurons)
         act_list    = [ mean_act_sim[:, :, :N[0]],                  # CS 
@@ -362,10 +372,13 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         }
 
         # start the plot
+        vis.activity_plot(act_plot_dic, 
+                        color_list = color_list, fig_size = fig_size,
+                        neuron_list = neuron_list, line_col = line_col,
+                        config = p, saving = False)
+        '''
         fig_ap, ax_ap = plt.subplots(2,2, figsize=fig_size)    # 4 input orientations
         x_plot = np.linspace(0, Sn.Ttau, plot_steps)
-        neuron_list = ['CS','CC','PV','SST']
-        line_col = [ 'darkblue','deeppink','seagreen','fuchsia']
         
         for i in range(4):  
             axs_ap = ax_ap.flatten()[i]
@@ -392,7 +405,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         fig_ap.suptitle(f"Activity by {p.learning_rule}", y=1)
         fig_ap.show()
         # fig_ap.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_plot_act.png', dpi=100)
-
+        '''
 
         ########## weight plot with error bar ##########
         # prepare the data
@@ -416,6 +429,11 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             "structure": "(plot_steps(50), postsyn, presyn)"
         }
 
+        vis.weights_plot(wei_plot_dic, 
+                        color_list = color_list, fig_size = fig_size,
+                        neuron_list = neuron_list, line_col = line_col,
+                        config = p, saving = False)        
+        '''
         # starting the plot
         fig_wp, ax_wp = plt.subplots(2,2, figsize=fig_size)    # 4 post-synaptic neurons
         label_list_w = ['cs pre', 'cc pre', 'pv pre', 'sst pre']
@@ -449,6 +467,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         fig_wp.suptitle(f"Weights by {p.learning_rule}", y = 1)
         fig_wp.show()
         # fig_wp.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_plot_wei.png', dpi=100)
+        '''
 
         ##### Activity distribution #####
         # ??? is weight distribution necessary? 
@@ -467,6 +486,10 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                                     "PV": act_ser_list[2],"SST":act_ser_list[3]})
         activity_df['Degree'] = np.repeat(p.degree, int(activity_df.shape[0]/4))
 
+        vis.activity_histogram(activity_df, 
+                            color_list = color_list, fig_size = fig_size,
+                            config = p, saving = False)        
+        '''
         fig_ad, ax_ad = plt.subplots(2, 2, figsize=fig_size, gridspec_kw=dict(width_ratios=[1, 1]))
         for i in range(4):
             axs_ad = ax_ad.flatten()[i]
@@ -482,14 +505,15 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         fig_ad.suptitle(f"Activity distribution by {p.learning_rule}", verticalalignment = 'top', y = 1)
         fig_ad.show()
         # fig_ad.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_dis_act.png', dpi=100)
-
+        '''
         ##### TODO: Correlation between the mean weights and its activity #####
 
         # updating the data storing dictionary
         sim_dic.update({
             'loss_value':       helper.lossfun(sim_dic, config = p), 
             'activity_plot':    act_plot_dic,
-            'weights_plot':     wei_plot_dic
+            'weights_plot':     wei_plot_dic,
+            'activity_hist':    activity_df
         })
     
         ######## saving the results ########
@@ -497,14 +521,12 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         filepath.parent.mkdir(parents=True, exist_ok=True)
         with open(filepath, 'wb') as f:
             pickle.dump(sim_dic, f)
-        
         '''
         To load the dictionary:
         with open("path/to/pickle.pkl", 'rb') as f:
            loaded_dict = pickle.load(f)
         '''
        
-
     return sim_dic, activity_plot_list, weights_plot_list
 
 def objective(params):
