@@ -346,7 +346,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         '''
 
         ########## bar plot for activity, os, ds and os_paper ##########
-        selectivity_bl_df = pd.DataFrame(selectivity_data_bl, index=selectivity_ind, columns=selectivity_col))
+        selectivity_bl_df = pd.DataFrame(selectivity_data_bl, index=selectivity_ind, columns=selectivity_col)
         vis.selectivity_barplot(selectivity_df, selectivity_bl_df,
                                 fig_size = fig_size, color_list = color_list, 
                                 config = p, saving = False)
