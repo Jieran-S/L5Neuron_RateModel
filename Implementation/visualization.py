@@ -182,7 +182,7 @@ def weights_barplot(weight_df, **kwargs):
     if saving:
         fig_w.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_wei.png', dpi=100)
 
-def selectivity_barplot(selectivity_df, **kwargs):
+def selectivity_barplot(selectivity_df, selectivity_df_bl, **kwargs):
 
     fig_size = kwargs['fig_size']
     color_list = kwargs['color_list']
@@ -191,29 +191,38 @@ def selectivity_barplot(selectivity_df, **kwargs):
     DateFolder, time_id = helper.create_data_dir(config=p)
 
     fig_s, ax_s = plt.subplots(2,2, figsize=fig_size)
+    bar_width = 0.3
     x_pos_s = np.arange(selectivity_df.shape[1])
+    x_pos_b = [x + bar_width for x in x_pos_s]
     title_list_s = ['Mean activity',                'Orientational selectivity (OS)',
                     'Directional selectivity (DS)', 'Orientational selectivity_p (OS_p)']
     
     for i in range(4):
         axs = ax_s.flatten()[i]
-        axs.bar(x_pos_s, list(selectivity_df.iloc[3*i,]), color = color_list,
-                align='center', alpha=0.5)
-        axs.errorbar(x_pos_s, list(selectivity_df.iloc[3*i,]),yerr = list(selectivity_df.iloc[3*i+2,]),
+        axs.bar(x_pos_s, list(selectivity_df_bl.iloc[3*i,]), color = color_list[0],
+                align='center', alpha=0.5, label = 'before')
+        axs.bar(x_pos_b, list(selectivity_df.iloc[3*i,]), color = color_list[1],
+                align='center', alpha=0.5, label = 'after')
+        axs.errorbar(x_pos_s, list(selectivity_df_bl.iloc[3*i,]),yerr = list(selectivity_df_bl.iloc[3*i+2,]),
                     fmt = '-o', capsize = 10, ecolor = 'black')
-        axs.set_xticks(x_pos_s)
+        axs.errorbar(x_pos_b, list(selectivity_df.iloc[3*i,]),yerr = list(selectivity_df.iloc[3*i+2,]),
+            fmt = '-o', capsize = 10, ecolor = 'black')         
+        axs.set_xticks([x + 0.5*bar_width for x in x_pos_s])
         axs.set_xticklabels(selectivity_df.columns)
         axs.set_ylabel(title_list_s[i])
         axs.set_ylim(bottom = -0.1, top = None)
         axs.set_title(title_list_s[i])
-        axs.yaxis.grid(True)
+        axs.yaxis.grid(True) 
         axs.margins(x=0.02)
+        axs.legend()
     
     fig_s.tight_layout(pad=1.0)
     fig_s.suptitle(f"Activity by {p.learning_rule}", y = 1)
     fig_s.show()
     if saving: 
         fig_s.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_act_OS.png', dpi=100)
+
+
 
 def activity_plot(act_plot_dic, **kwargs):
 
@@ -258,7 +267,6 @@ def activity_plot(act_plot_dic, **kwargs):
     fig_ap.show()
     if saving: 
         fig_ap.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_plot_act.png', dpi=100)
-
 
 def weights_plot(wei_plot_dic, **kwargs):
 
