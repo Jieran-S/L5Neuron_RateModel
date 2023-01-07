@@ -32,7 +32,7 @@ tau_threshold = 2.1     # 2.7922382927606537
 ####### Network parameters #######
 # Training rule specification
 rule_list = ['None', 'BCM', 'Slide_BCM', 'Oja', 'Cov']     
-learning_rule = rule_list[4]
+learning_rule = rule_list[3]
 
 # Training neuron specification
 neurons_list = ['excit_only', 'inhibit_only', 'all']

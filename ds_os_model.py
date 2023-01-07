@@ -72,6 +72,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     os_mean_all, os_std_all, ds_mean_all, ds_std_all, os_paper_mean_all, os_paper_std_all, a_mean_all, a_std_all = \
         [], [], [], [], [], [], [], []
 
+    os_mean_all_bl, os_std_all_bl, ds_mean_all_bl, ds_std_all_bl, os_paper_mean_all_bl, os_paper_std_all_bl, a_mean_all_bl, a_std_all_bl = \
+    [], [], [], [], [], [], [], []
     ########## data storage structure ##########
     """
     all_activity/weights_plot_list: store all activities/weights data across simulations for plotting
@@ -88,6 +90,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
         # store activities per simulation for intra-simulation evaluation
         activity_eval_sim = []  # (radians, timestep/n, neurons)
+        activity_eval_bl = []   # (radians, 5, neurons)
         activity_plot_sim = [] # (radians, 50, neurons)
 
         ########## weight initialization ##########
@@ -191,8 +194,11 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             # for evaluation 
             weights_eval = weights_mean[-50:]             # only the last 25 data points are needed
             activity_eval = activity_mean[int(-600/n):]   # only the last 500/n data is needed
+            LearningTime = int(max((Sn.number_steps_before_learning - (Sn.step- Sn.tsteps))*Sn.delta_t/Sn.tau,0)/n)
+            activity_before_learn = activity_mean[max(LearningTime-5, 0):LearningTime]
             
             activity_eval_sim.append(activity_eval)
+            activity_eval_bl.append(activity_before_learn)
             weights_eva_list.append(weights_eval)        
             ini_weights_list.append(W_rec)          
             
@@ -207,7 +213,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
         # ------ radians loop ends here ------
         activity_eval_sim = np.asarray(activity_eval_sim)           # activity_eval_sim:    (radians, 600/n, neurons)
-        
+        activity_eval_bl = np.asarray(activity_eval_bl)             # activity_eval_bl:     (radians, 5, neurons)
+
         if visualization_mode:
             activity_plot_list.append(np.asarray(activity_plot_sim))        # activity_plot_list: (simulation, radians, 50, neurons)
 
@@ -215,12 +222,16 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         if success: 
             # activity_not_reliable: a list of 4, each of which: (radians, neuron_number)
             a_mean, a_std, activity_not_reliable = Sn.activity_eva(activity_eval_sim, n)
-            
+            mean_bl, std_bl, activiity_not_reliable_bl = Sn.activity_eva(activity_eval_bl, n, 5*n)
+
             # mean and std for different neuron types in one simulation
             a_mean_all.append(a_mean)
+            a_mean_all_bl.append(mean_bl)
             a_std_all.append(a_std)
+            a_std_all_bl.append(std_bl)
             
             activity_popu, activity_off_sim = Sn.selectivity_eva_intrasim(activity_not_reliable)
+            activity_popu_bl, _ = Sn.selectivity_eva_intrasim(activiity_not_reliable_bl)
             activity_off += activity_off_sim
 
             if len(activity_popu) == 4:
@@ -232,6 +243,14 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                 ds_std_all.append(ds_std)
                 os_paper_mean_all.append(os_paper_mean)
                 os_paper_std_all.append(os_paper_std)
+                # do the same for before learning (bl)
+                os_mean, os_std, ds_mean, ds_std, os_paper_mean, os_paper_std = helper.calculate_selectivity(activity_popu_bl)
+                os_mean_all_bl.append(os_mean)
+                os_std_all_bl.append(os_std)
+                ds_mean_all_bl.append(ds_mean)
+                ds_std_all_bl.append(ds_std)
+                os_paper_mean_all_bl.append(os_paper_mean)
+                os_paper_std_all_bl.append(os_paper_std)
 
     # ---------------- simulations end here ----------------
     ################## evaluation over all simulations ##################
@@ -240,7 +259,10 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                                                         ds_mean_all, ds_std_all, 
                                                         os_paper_mean_all, os_paper_std_all,
                                                         a_mean_all,  a_std_all)
-
+    selectivity_data_bl, _ = Sn.selectivity_eva_all(os_mean_all_bl, os_std_all_bl,
+                                                            ds_mean_all_bl, ds_std_all_bl,
+                                                            os_paper_mean_all_bl, os_paper_std_all_bl,
+                                                            a_mean_all_bl, a_std_all_bl)
     # weight config evaluation
     weights_eval_all  =  np.asarray(weights_eva_list)            # weights:     (sim * radians, 50, postsyn, presyn))
     weight_data = Sn.weight_eva(weights=weights_eval_all, 
@@ -264,7 +286,6 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                         'Mean_of_DS',  'Std_mean_DS',  'Mean_std_DS', 
                         'Mean_of_OS_p','Std_mean_OS_p','Mean_std_OS_p']
     selectivity_df = pd.DataFrame(selectivity_data, index=selectivity_ind, columns=selectivity_col)
-
     # summary info
     summary_info = {
         "Real_OS": rel_data[0], 
@@ -293,7 +314,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     
     ################## visualization under visualization_mode ##################
     # A copy of those graphs in function is noted in the visualization.py in case we need to extract them
-    if visualization_mode == False:
+    if visualization_mode:
         fig_size = (10,11)
         color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
         DateFolder, time_id = helper.create_data_dir(config=p)
@@ -325,7 +346,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         '''
 
         ########## bar plot for activity, os, ds and os_paper ##########
-        vis.selectivity_barplot(selectivity_df, 
+        selectivity_bl_df = pd.DataFrame(selectivity_data_bl, index=selectivity_ind, columns=selectivity_col))
+        vis.selectivity_barplot(selectivity_df, selectivity_bl_df,
                                 fig_size = fig_size, color_list = color_list, 
                                 config = p, saving = False)
         '''

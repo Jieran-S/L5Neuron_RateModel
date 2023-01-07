@@ -232,12 +232,12 @@ class SimpleNetwork:
         
         self.activity = all_act[-Ntotal:]
         self.weights = all_weights[-Ntotal:]
-        self.step = step
+        self.step = step + 1
         return self.activity, self.weights
             
     #%% ############### Evaluation and Visualization ###############
 
-    def activity_eva(self, activity, n = 25):
+    def activity_eva(self, activity, n = 25, duration = 500):
         '''
         input: activity: 3D matrix (radians, Tstep/n, N)
         n: period based on TemporalF
@@ -249,7 +249,7 @@ class SimpleNetwork:
         Aneuron:    a list of 4, each of which is (radians, neuron_number)
         '''
         N = self.N              # neuron composition
-        Eva_step = int(500/n)        # number of time steps taken in evaluation
+        Eva_step = int(duration/n)        # number of time steps taken in evaluation
 
         Amean = [np.mean(activity[:, -Eva_step:, :N[0]]),
                             np.mean(activity[:, -Eva_step:, sum(N[:1]):sum(N[:2])]),
