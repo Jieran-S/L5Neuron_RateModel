@@ -70,10 +70,28 @@ def BCM_rule(weights_project, kwargs):
     activity_presyn = activity_current*(activity_current-tresholds)
     weight_change=np.dot(activity_presyn[:,None], inputs[None,:])/(tresholds[:,None])
 
+    ######## Config which neurons are trianed and their patterns ########
     #trimming only for excitory neurons(CC, CS)
-    if kwargs['excit_only'] == True: 
+    if kwargs['neurons'] == 'excit_only': 
         weight_change[:, -np.sum(N[2:]):]= 0
         weight_change[-np.sum(N[2:]):, :]= 0
+        
+    elif kwargs['neurons'] == 'inhibit_only': 
+        weight_change[:, :np.sum(N[:2])]= 0
+        weight_change[:np.sum(N[2:]), :]= 0
+
+    # If specific training patterns are sepecified
+    if kwargs['train_mode'] == 'CS':
+        # Only updating the weight of CS as post-synaptic neurons (rows)
+        weight_change[-np.sum(N[1:]):, :]= 0
+
+    elif kwargs['train_mode'] == 'CC':
+        # only updating the weight of CC as post-synaptic neurons (rows)
+        weight_change[:N[0],:] = 0
+        weight_change[-np.sum(N[2:]):, :]= 0
+    
+    elif kwargs['train_mode'] == 'Rest':
+        weight_change[:,:] = 0
     
     # return a N x N matrix, row is post-syn, col is pre-syn
     # print(timescale_learn*weight_change*kwargs['w_struct_mask'])
