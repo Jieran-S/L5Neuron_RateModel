@@ -152,7 +152,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                                                         steady_input=steady_input,   )
 
             # run simulation: raw_activity:(tstep, neurons); raw_weights:(tstep, postsyn, presyn)
-            raw_activity, raw_weights = Sn.run(inputs, initial_values, simulate_till_converge = True)
+            raw_activity, raw_weights = Sn.run(inputs, initial_values, simulate_till_converge = False)
             raw_activity = np.asarray(raw_activity)
             raw_weights  = np.asarray(raw_weights)
             ############ data quality checking ############
@@ -323,7 +323,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
         ########## bar plot for weight change and final weight value ##########
         vis.weights_barplot(weight_df, 
-                        color_list = color_list, 
+                        color_list = color_list, learning_rule = learning_rule,
                         config = p, saving = False)
         '''
         fig_w, ax_w = plt.subplots(1,2, figsize=(15, 5))
@@ -349,7 +349,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
         ########## bar plot for activity, os, ds and os_paper ##########
         vis.selectivity_barplot(selectivity_df, selectivity_bl_df,
-                                fig_size = fig_size, color_list = color_list, 
+                                fig_size = fig_size, color_list = color_list, learning_rule = learning_rule,
                                 config = p, saving = False)
         '''
         fig_s, ax_s = plt.subplots(2,2, figsize=fig_size)
@@ -396,7 +396,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
         # start the plot
         vis.activity_plot(act_plot_dic, 
-                        color_list = color_list, fig_size = fig_size,
+                        color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
                         neuron_list = neuron_list, line_col = line_col,
                         config = p, saving = False)
         '''
@@ -453,7 +453,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         }
 
         vis.weights_plot(wei_plot_dic, 
-                        color_list = color_list, fig_size = fig_size,
+                        color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
                         neuron_list = neuron_list, line_col = line_col,
                         config = p, saving = False)        
         '''
@@ -510,7 +510,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         activity_df['Degree'] = np.repeat(p.degree, int(activity_df.shape[0]/4))
 
         vis.activity_histogram(activity_df, 
-                            color_list = color_list, fig_size = fig_size,
+                            color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
                             config = p, saving = False)        
         '''
         fig_ad, ax_ad = plt.subplots(2, 2, figsize=fig_size, gridspec_kw=dict(width_ratios=[1, 1]))
@@ -554,76 +554,56 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
 def objective(params):
     amplitude = [params['cc'], params['cs'], params['pv'], params['sst']]
-    sim_dic = run_simulation( 
+    tau_learn, tau_threshold_fac =  params['tau_learn'], params['tau_threshold_fac']
+    sim_dic, _, _ = run_simulation( 
                 Amplitude= amplitude,
                 Steady_input= p.steady_input,
                 spatialF=p.spatialF,
                 temporalF=p.temporalF,
                 spatialPhase=p.spatialPhase,
                 learning_rule= p.learning_rule, 
-                Ttau =p.Ttau,
-                tau = p.tau, 
-                tau_learn = p.tau_learn, 
-                tau_threshold=p.tau_threshold,
-                visualization_mode=False) 
-    
-    # return the loss function value
-    lossval = helper.lossfun(sim_dic, config=p)
-    return lossval
-
-# loss function to reach a stable configuration for the 
-def stable_sim_objective(params): 
-    tau_learn, tau_threshold_fac =  params['tau_learn'], params['tau_threshold_fac']
-    Sim_dic = run_simulation( 
-                Amplitude= p.amplitude,
-                Steady_input= p.steady_input,
-                spatialF=p.spatialF,
-                temporalF=p.temporalF,
-                spatialPhase=p.spatialPhase,
-                learning_rule= p.learning_rule, 
+                neurons=p.neurons,
+                phase_list=p.phase_list,
                 Ttau =p.Ttau,
                 tau = p.tau, 
                 tau_learn = tau_learn, 
                 tau_threshold=tau_threshold_fac*tau_learn,
                 visualization_mode=False) 
     
-    # FIXME: Change the stable simulation loss function input if needed in the future
-    # lossval = helper.Stable_sim_loss(activity=activity, Max_act=20)
-    return ...
+    # return the loss function value
+    lossval = helper.lossfun(sim_dic, config=p)
+    return lossval
+
 
 #%% Simulation with default parameter for visualization
 if __name__ == "__main__":
-    
-    # inputing all tunable parameters from the test.config and first run and visualize
-    sim_dic, activity_plot_list, weights_plot_list = run_simulation( Amplitude= p.amplitude,
-                    Steady_input= p.steady_input,
-                    spatialF=p.spatialF,
-                    temporalF=p.temporalF,
-                    spatialPhase=p.spatialPhase,
-                    learning_rule= p.learning_rule, 
-                    phase_list=p.phase_list,
-                    neurons=p.neurons,
-                    Ttau =p.Ttau,
-                    tau=p.tau,
-                    tau_learn=p.tau_learn,
-                    tau_threshold=p.tau_threshold,
-                    visualization_mode=True,)
+    if p.tuning != True:
+        # inputing all tunable parameters from the test.config and first run and visualize
+        sim_dic, activity_plot_list, weights_plot_list = run_simulation( Amplitude= p.amplitude,
+                        Steady_input= p.steady_input,
+                        spatialF=p.spatialF,
+                        temporalF=p.temporalF,
+                        spatialPhase=p.spatialPhase,
+                        learning_rule= p.learning_rule, 
+                        phase_list=p.phase_list,
+                        neurons=p.neurons,
+                        Ttau =p.Ttau,
+                        tau=p.tau,
+                        tau_learn=p.tau_learn,
+                        tau_threshold=p.tau_threshold,
+                        visualization_mode=True,)
 
 #%%  Hyper parameter tuning
 if __name__ == "__main__":            
     # Hyperpot attempt
     if p.tuning == True: 
         # define domain
-        '''
+        
         space = {
             'cs': hyperopt.hp.uniform('cs', 0, 20),
             'cc': hyperopt.hp.uniform('cc', 0, 20),
             'pv': hyperopt.hp.uniform('pv', 0, 20),
-            'sst':hyperopt.hp.uniform('sst', 0, 20)
-        }
-        '''
-
-        space = {
+            'sst':hyperopt.hp.uniform('sst', 0, 20),
             'tau_learn': hyperopt.hp.uniform('tau_learn', 1000, 2000),
             'tau_threshold_fac': hyperopt.hp.uniform('tau_threshold_fac', 0.001, 1),
         }        
@@ -636,8 +616,8 @@ if __name__ == "__main__":
         trails = hyperopt.Trials()
 
         # Start hyperparameter search
-        tpe_best = hyperopt.fmin(fn=stable_sim_objective, space=space, algo=algo_tpe, trials=trails, 
-                        max_evals=50)
+        tpe_best = hyperopt.fmin(fn=objective, space=space, algo=algo_tpe, trials=trails, 
+                        max_evals=5)
 #%% Tuning results visualization
 
         # Printing out results
@@ -647,16 +627,13 @@ if __name__ == "__main__":
         print('\nBest input set: {}'.format(tpe_best)) 
 
         # Saving the results into a csv file: still have to see here
-        """
+        
         tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
                                     'iteration': trails.idxs_vals[0]['cc'],
                                     'cs': trails.idxs_vals[1]['cs'],
                                     'cc': trails.idxs_vals[1]['cc'],
                                     'pv': trails.idxs_vals[1]['pv'],
-                                    'sst': trails.idxs_vals[1]['sst'],}).fillna(method='ffill')
-        """
-        tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
-                                    'iteration': trails.idxs_vals[0]['tau_learn'],
+                                    'sst': trails.idxs_vals[1]['sst'],
                                     'tau_learn': trails.idxs_vals[1]['tau_learn'],
                                     'tau_threshold': trails.idxs_vals[1]['tau_threshold_fac'],}).fillna(method='ffill')
         # plot and visualize the value trace
@@ -677,23 +654,20 @@ if __name__ == "__main__":
 
 
         # put the best parameter back and see the results
-        # Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
-        (Best_act, Best_weight, _ )= run_simulation( 
-                Amplitude= p.amplitude,
-                Steady_input= p.steady_input,
-                spatialF=p.spatialF,
-                temporalF=p.temporalF,
-                spatialPhase=p.spatialPhase,
-                learning_rule= p.learning_rule, 
-                Ttau =p.Ttau,
-                tau = p.tau, 
-                tau_learn = tpe_best["tau_learn"], 
-                tau_threshold=tpe_best["tau_threshold_fac"]*tpe_best["tau_learn"],
-                visualization_mode=False) 
+        Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
         
-        #Saving the data after running
-        with open(f'data/{DateFolder}/Tuning_Tau_Activity_weight.npy', 'wb') as f:
-            np.save(f, Best_act)
-            np.save(f, Best_weight)
+        sim_dic_best, activity_plot_list, weights_plot_list = run_simulation( Amplitude= Best_amplitude,
+                        Steady_input= p.steady_input,
+                        spatialF=p.spatialF,
+                        temporalF=p.temporalF,
+                        spatialPhase=p.spatialPhase,
+                        learning_rule= p.learning_rule, 
+                        phase_list=p.phase_list,
+                        neurons=p.neurons,
+                        Ttau =p.Ttau,
+                        tau=p.tau,
+                        tau_learn=tpe_best['tau_learn'],
+                        tau_threshold=tpe_best['tau_learn']*tpe_best['tau_threshold_fac'],
+                        visualization_mode=True,)
         
     # TODO: Spearmint tuning package

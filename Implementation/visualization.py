@@ -157,7 +157,9 @@ def weights_barplot(weight_df, **kwargs):
     color_list = kwargs['color_list']
     p = kwargs['config']
     saving = kwargs['saving']
+    learning_rule = kwargs['learning_rule']
     DateFolder, time_id = helper.create_data_dir(config=p)
+
 
     fig_w, ax_w = plt.subplots(1,2, figsize=(15, 5))
     x_pos_w = np.arange(weight_df.shape[1])
@@ -177,10 +179,10 @@ def weights_barplot(weight_df, **kwargs):
         plt.setp(ax_w[i].get_xticklabels(), rotation=30, horizontalalignment='right')
 
     fig_w.tight_layout(pad=1.0)
-    fig_w.suptitle(f"Weight by {p.learning_rule}", y = 1)
+    fig_w.suptitle(f"Weight by {learning_rule}", y = 1)
     fig_w.show()
     if saving:
-        fig_w.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_wei.png', dpi=100)
+        fig_w.savefig(f'data/{DateFolder}/{time_id}_{learning_rule}_wei.png', dpi=100)
 
 def selectivity_barplot(selectivity_df, selectivity_df_bl, **kwargs):
 
@@ -188,6 +190,7 @@ def selectivity_barplot(selectivity_df, selectivity_df_bl, **kwargs):
     color_list = kwargs['color_list']
     p = kwargs['config']
     saving = kwargs['saving']
+    learning_rule = kwargs['learning_rule']
     DateFolder, time_id = helper.create_data_dir(config=p)
 
     fig_s, ax_s = plt.subplots(2,2, figsize=fig_size)
@@ -217,10 +220,10 @@ def selectivity_barplot(selectivity_df, selectivity_df_bl, **kwargs):
         axs.legend()
     
     fig_s.tight_layout(pad=1.0)
-    fig_s.suptitle(f"Activity by {p.learning_rule}", y = 1)
+    fig_s.suptitle(f"Activity by {learning_rule}", y = 1)
     fig_s.show()
     if saving: 
-        fig_s.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_act_OS.png', dpi=100)
+        fig_s.savefig(f'data/{DateFolder}/{time_id}_{learning_rule}_act_OS.png', dpi=100)
 
 def activity_plot(act_plot_dic, **kwargs):
 
@@ -229,7 +232,9 @@ def activity_plot(act_plot_dic, **kwargs):
     neuron_list = kwargs['neuron_list']
     line_col = kwargs['line_col']
     p = kwargs['config']
+    learning_rule = kwargs['learning_rule']
     saving = kwargs['saving']
+
 
     DateFolder, time_id = helper.create_data_dir(config=p)
     mean_act_neuron = act_plot_dic['mean_act']
@@ -261,10 +266,10 @@ def activity_plot(act_plot_dic, **kwargs):
                 loc = 'lower center', 
                 ncol = 4, bbox_to_anchor=(0.5, -0.02))
     fig_ap.tight_layout(pad=1.0)
-    fig_ap.suptitle(f"Activity by {p.learning_rule}", y=1)
+    fig_ap.suptitle(f"Activity by {learning_rule}", y=1)
     fig_ap.show()
     if saving: 
-        fig_ap.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_plot_act.png', dpi=100)
+        fig_ap.savefig(f'data/{DateFolder}/{time_id}_{learning_rule}_plot_act.png', dpi=100)
 
 def weights_plot(wei_plot_dic, **kwargs):
 
@@ -273,6 +278,7 @@ def weights_plot(wei_plot_dic, **kwargs):
     neuron_list = kwargs['neuron_list']
     line_col = kwargs['line_col']
     p = kwargs['config']
+    learning_rule = kwargs['learning_rule']
     saving = kwargs['saving']
 
     DateFolder, time_id = helper.create_data_dir(config=p)
@@ -310,16 +316,17 @@ def weights_plot(wei_plot_dic, **kwargs):
                 loc = 'lower center', 
                 ncol = 4, bbox_to_anchor=(0.5, -0.02))
     fig_wp.tight_layout(pad=1.0)
-    fig_wp.suptitle(f"Weights by {p.learning_rule}", y = 1)
+    fig_wp.suptitle(f"Weights by {learning_rule}", y = 1)
     fig_wp.show()
     if saving:
-        fig_wp.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_plot_wei.png', dpi=100)
+        fig_wp.savefig(f'data/{DateFolder}/{time_id}_{learning_rule}_plot_wei.png', dpi=100)
 
 def activity_histogram(activity_df, **kwargs):
 
     fig_size = kwargs['fig_size']
     color_list = kwargs['color_list']
     p = kwargs['config']
+    learning_rule = kwargs['learning_rule']
     saving = kwargs['saving']
 
     DateFolder, time_id = helper.create_data_dir(config=p)
@@ -335,7 +342,7 @@ def activity_histogram(activity_df, **kwargs):
         axs_ad.set_xlabel("Firing rate")
         axs_ad.set_title(f"{activity_df.columns[i]}")
     fig_ad.tight_layout(pad=1.0)
-    fig_ad.suptitle(f"Activity distribution by {p.learning_rule}", verticalalignment = 'top', y = 1)
+    fig_ad.suptitle(f"Activity distribution by {learning_rule}", verticalalignment = 'top', y = 1)
     fig_ad.show()
     if saving:
-        fig_ad.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_dis_act.png', dpi=100)
+        fig_ad.savefig(f'data/{DateFolder}/{time_id}_{learning_rule}_dis_act.png', dpi=100)

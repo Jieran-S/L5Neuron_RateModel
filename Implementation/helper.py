@@ -348,6 +348,7 @@ def lossfun(sim_dic, config, MaxAct = 20):
 
     weight_df = sim_dic['weight_df']
     select_df = sim_dic['selectivity_df'].loc['after']
+    select_df_bl = sim_dic['selectivity_df'].loc['before']
     Reg_factor = 0.1
 
     # Total weight variance
@@ -357,6 +358,10 @@ def lossfun(sim_dic, config, MaxAct = 20):
     Smean = weight_df.loc['Mean_weight',].to_numpy()
     w_target_flat = config.w_compare.T.flatten()
     rmse = np.sqrt(np.mean(np.square(Smean - w_target_flat)))
+
+    # Converge the factor into differences
+    DeltaDS = sum(select_df.loc['Mean_of_DS'] - select_df_bl.loc['Mean_of_DS'])
+    DeltaOS = abs(sum(select_df.loc['Mean_of_OS'] - select_df_bl.loc['Mean_of_OS']))
 
     # average activity variance in each simulation, averaging them across different neuron types
     Avar_mean = select_df.loc['Mean_std',].mean()
@@ -383,7 +388,8 @@ def lossfun(sim_dic, config, MaxAct = 20):
     """
     
     # TODO: What is the scale we should multiply? 
-    return abs(10*(rmse + Sel_std + Sel_std_sim) - 5*(Sel_sum) - Reg_factor*(Avar_mean - Wvar_sum))
+    # previous loss: abs(10*(rmse + Sel_std + Sel_std_sim) - 5*(Sel_sum) - Reg_factor*(Avar_mean - Wvar_sum))
+    return abs(10*(rmse + DeltaOS) - DeltaDS + Reg_factor*(Sel_std + Sel_std_sim))
     
 def Stable_sim_loss(activity, Max_act = 20): 
     '''
