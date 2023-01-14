@@ -347,7 +347,7 @@ def lossfun(sim_dic, config, MaxAct = 20):
     '''
 
     weight_df = sim_dic['weight_df']
-    select_df = sim_dic['selectivity_df']
+    select_df = sim_dic['selectivity_df'].loc['after']
     Reg_factor = 0.1
 
     # Total weight variance
