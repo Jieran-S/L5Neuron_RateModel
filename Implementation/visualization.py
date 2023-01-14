@@ -191,18 +191,18 @@ def selectivity_barplot(selectivity_df, selectivity_df_bl, **kwargs):
     DateFolder, time_id = helper.create_data_dir(config=p)
 
     fig_s, ax_s = plt.subplots(2,2, figsize=fig_size)
-    bar_width = 0.3
+    bar_width = 0.6
     x_pos_s = np.arange(selectivity_df.shape[1])
-    x_pos_b = [x + bar_width for x in x_pos_s]
+    x_pos_b = [x + 0.2 for x in x_pos_s]
     title_list_s = ['Mean activity',                'Orientational selectivity (OS)',
                     'Directional selectivity (DS)', 'Orientational selectivity_p (OS_p)']
     
     for i in range(4):
         axs = ax_s.flatten()[i]
         axs.bar(x_pos_s, list(selectivity_df_bl.iloc[3*i,]), color = color_list[0],
-                align='center', alpha=0.5, label = 'before')
+                align='center', alpha=0.5, label = 'before', width = bar_width)
         axs.bar(x_pos_b, list(selectivity_df.iloc[3*i,]), color = color_list[1],
-                align='center', alpha=0.5, label = 'after')
+                align='center', alpha=0.5, label = 'after', width = bar_width)
         axs.errorbar(x_pos_s, list(selectivity_df_bl.iloc[3*i,]),yerr = list(selectivity_df_bl.iloc[3*i+2,]),
                     fmt = '-o', capsize = 10, ecolor = 'black')
         axs.errorbar(x_pos_b, list(selectivity_df.iloc[3*i,]),yerr = list(selectivity_df.iloc[3*i+2,]),
@@ -221,8 +221,6 @@ def selectivity_barplot(selectivity_df, selectivity_df_bl, **kwargs):
     fig_s.show()
     if saving: 
         fig_s.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_act_OS.png', dpi=100)
-
-
 
 def activity_plot(act_plot_dic, **kwargs):
 
@@ -329,8 +327,8 @@ def activity_histogram(activity_df, **kwargs):
     for i in range(4):
         axs_ad = ax_ad.flatten()[i]
         sns.histplot(activity_df, x = activity_df.columns[i], hue='Degree', kde=True, 
-                    stat="density", fill = True, alpha = 0.4, 
-                    palette = color_list, multiple="stack", 
+                    stat="density", fill = True, alpha = 0.2, 
+                    palette = color_list, multiple="layer",
                     common_norm=False, ax = ax_ad.flatten()[i])
         
         axs_ad.margins(x=0.02)

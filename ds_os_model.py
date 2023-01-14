@@ -36,7 +36,7 @@ np.random.seed(42)
  Parameter not in need so far
 '''
 def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase, 
-                    learning_rule, Ttau, visualization_mode,
+                    learning_rule, Ttau, visualization_mode, neurons, phase_list,
                     tau, 
                     tau_learn, 
                     tau_threshold):
@@ -130,8 +130,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                                 update_function=p.update_function, 
                                 number_steps_before_learning = p.number_steps_before_learning, 
                                 gamma=p.gamma, N = p.N, 
-                                neurons= p.neurons, 
-                                phase_list=p.phase_list,
+                                neurons= neurons, 
+                                phase_list=phase_list,
                                 #parameters to tune
                                 learning_rule=learning_rule,
                                 tau=tau, 
@@ -286,6 +286,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                         'Mean_of_DS',  'Std_mean_DS',  'Mean_std_DS', 
                         'Mean_of_OS_p','Std_mean_OS_p','Mean_std_OS_p']
     selectivity_df = pd.DataFrame(selectivity_data, index=selectivity_ind, columns=selectivity_col)
+    selectivity_bl_df = pd.DataFrame(selectivity_data_bl, index=selectivity_ind, columns=selectivity_col)
+    all_selectivity = pd.concat([selectivity_df, selectivity_bl_df], keys=['after', 'before'], names=["Condition", "Property"])
     # summary info
     summary_info = {
         "Real_OS": rel_data[0], 
@@ -307,7 +309,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     # returned: A dictionary storing all relevant information
     sim_dic = {
         "weight_df":        weight_df,
-        "selectivity_df":   selectivity_df,
+        "selectivity_df":   all_selectivity,
         "summary_info":     summary_info,
         "meta_data":        meta_data,
     }
@@ -346,7 +348,6 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         '''
 
         ########## bar plot for activity, os, ds and os_paper ##########
-        selectivity_bl_df = pd.DataFrame(selectivity_data_bl, index=selectivity_ind, columns=selectivity_col)
         vis.selectivity_barplot(selectivity_df, selectivity_bl_df,
                                 fig_size = fig_size, color_list = color_list, 
                                 config = p, saving = False)
@@ -600,6 +601,8 @@ if __name__ == "__main__":
                     temporalF=p.temporalF,
                     spatialPhase=p.spatialPhase,
                     learning_rule= p.learning_rule, 
+                    phase_list=p.phase_list,
+                    neurons=p.neurons,
                     Ttau =p.Ttau,
                     tau=p.tau,
                     tau_learn=p.tau_learn,
