@@ -70,6 +70,7 @@ def plot_activity(activity, config, sim, degree = 0, saving = False):
 def plot_weights(weights, config, sim, degree = 0, saving = False ):
 
     '''
+    # !!! For debugging purpose. Now the dimension does't fit so don't use it
     input:
     weights: (simulation, degree, time-step, post syn, pre syn)
     config: input configuration file
