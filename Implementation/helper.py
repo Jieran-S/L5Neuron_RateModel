@@ -178,7 +178,7 @@ def generate_connectivity(N, p, w_initial, w_noise):
 
 def calculate_selectivity_sbi(activity_popu):
     """
-    Calculate mean and std of selectivity.
+    Calculate mean and std of selectivity based on OS, DS and OS_p funcion defined by the paper
 
     """
 
@@ -221,9 +221,9 @@ def calculate_selectivity_sbi(activity_popu):
 def calculate_selectivity(activity_popu):
     """
     activity_popu: A list of 4, each: (len(radians), all_selective_neurons)
-
+    # !!! if activity_popu is not in this shape, the calculation will be wrong!
     return:
-    all list of 4, each representing one type of neuron
+    all (4,), each representing one type of neuron
     """
 
     os_mean_data = []  # orientation selectivity
@@ -307,8 +307,9 @@ def selectivity_eva(activity, N):
 
     return (Amean, Astd, Aneuron)
 
-# For debuging
+# !!For debuging
 def find_weights(weights, N):
+    # !!! This function only for debug purpose
     def get_sim_weights(weights_vec):
         weight_cs = weights_vec[:, :N[0], :]
         weight_cc = weights_vec[:, sum(N[:1]):sum(N[:2]), :]
@@ -404,6 +405,7 @@ def Stable_sim_loss(activity, Max_act = 20):
 def create_data_dir(config):
     """
     Create a folder under /data folder with dates as the name
+    /data/MM_DD/
     Return the name of the pkl file to store the dictionary information
     """
 

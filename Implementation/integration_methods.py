@@ -25,19 +25,17 @@ def runge_kutta_explicit(fprime, x, **kwargs):
     # return x_new
     return np.clip(x_new, 0, None)
  
-
 def update_network(x, kwargs):
     '''
     nonlinearity: nonlin function, either supralinear(ReLu), tanh or Sigmoid
+    
+    For each step, the activity is updated based on the 
+    1. the current weight (w_rec) and current neuron activity (x)
+    2. the input stimulus (Input), as it directly affecting the post-syn neurons, it doesn't need to be applied weights
     '''    
     # Define the timestep to jump and nonlinear function
     timescale=1/(kwargs['tau'])
     nonlinearity=kwargs['nonlinearity']    
-
-    # 1st term: inner product of connectivity matrix and current PSP intensity + random input 
-    #           resulting in the current input stage
-    # 2nd term: time step input, only return the input value from the time step?? There's no 2nd input 
-    # from the system??
 
     # W-rec should be changed and w_input should be steady
     update= -x + nonlinearity(np.dot(kwargs['w_rec'], x) + np.dot(kwargs['w_input'], kwargs['Input'])) 
@@ -45,12 +43,13 @@ def update_network(x, kwargs):
     # linearized change amount
     return timescale*update
 
-
 def nonlearning_weights(x, kwargs):
     return np.zeros_like(x)
 
 def Simple_test_learn(x, kwargs):
     '''
+    Testing if the learning rule works and the system is actually updating.
+
     N = np.array([45, 275, 46, 34])
     w_cs = x[:, :N[0]] * 1.01
     w_cc = x[:, sum(N[:1]):sum(N[:2])] * 0.98
@@ -60,6 +59,16 @@ def Simple_test_learn(x, kwargs):
     return x*1.04
 
 def BCM_rule(weights_project, kwargs):
+    """
+    Run reference: http://www.scholarpedia.org/article/BCM_theory
+    inputs: input stimulus each time
+    N: number of different neuron types 
+    neurons: referring to which type of neurons' weight is updated
+    train_mode: at this time step which typo of neuron is trained
+    w_struct_mask: an eye matrix making sure the output dimension fits
+
+    """
+
     timescale_learn=1./(kwargs['tau_learn'])
     activity_all=np.asarray(kwargs['prev_act'])
     activity_current=activity_all[-1]
@@ -97,8 +106,12 @@ def BCM_rule(weights_project, kwargs):
     # print(timescale_learn*weight_change*kwargs['w_struct_mask'])
     return timescale_learn*weight_change*kwargs['w_struct_mask']
 
-
 def BCM_rule_sliding_th(weights_project, kwargs):
+    """
+    rule reference: http://www.scholarpedia.org/article/BCM_theory
+    Same documentation as BCM rules. sliding BCM changes threshold for learning all the time
+    """
+
     def threshold_old(activity_all):
         return np.var(activity_all, axis=0) + np.mean(activity_all, axis=0)**2    
     
@@ -155,9 +168,11 @@ def BCM_rule_sliding_th(weights_project, kwargs):
     # return a N x N matrix, row is post-syn, col is pre-syn
     return timescale_learn*weight_change*kwargs['w_struct_mask']
  
-
 def Oja_rule(weight_project, kwargs):
-    # see https://neuronaldynamics.epfl.ch/online/Ch19.S2.html#Ch19.F5 for details
+    """
+    Reference: https://neuronaldynamics.epfl.ch/online/Ch19.S2.html#Ch19.F5
+    same construction for other learning rules
+    """
     timescale_learn=1./(kwargs['tau_learn'])
     activity_all=np.asarray(kwargs['prev_act'])
     inputs=kwargs['Input']
@@ -200,6 +215,10 @@ def Oja_rule(weight_project, kwargs):
     return timescale_learn*weight_change*kwargs['w_struct_mask']
 
 def Cov_rule(weight_project, kwargs):
+    """
+    reference: https://neuronaldynamics.epfl.ch/online/Ch19.S2.html#Ch19.F5 
+    other setting is the same
+    """
     # Covariance-driven learning rules
     timescale_learn=1./(kwargs['tau_learn'])
     activity_all=np.asarray(kwargs['prev_act'])
@@ -209,11 +228,12 @@ def Cov_rule(weight_project, kwargs):
     activity_average = np.mean(activity_all, axis=0).reshape(-1,)
     activity_current = activity_all[-1] - activity_average
 
+    # Taking the covariance of the current activity based on the its difference between the past average
     weight_change=np.dot(activity_current[:, None], activity_current[None,:])
     
     # Weight change for inihibitory neuron as pre-syn should be reveresed 
     # Row: Postsyn; Col: Presyn
-    # weight_change[:, -np.sum(N[2:]):] *= -1
+    weight_change[:, -np.sum(N[2:]):] *= -1
 
     ######## Config which neurons are trianed and their patterns ########
     #trimming only for excitory neurons(CC, CS)

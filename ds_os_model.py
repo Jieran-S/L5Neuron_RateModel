@@ -32,24 +32,23 @@ import configs.debug_config as p
 
 np.random.seed(42)
 
-'''
- Parameter not in need so far
-'''
 def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase, 
                     learning_rule, Ttau, visualization_mode, neurons, phase_list,
                     tau, 
                     tau_learn, 
                     tau_threshold):
-    """
-    not_before = 0
-    if not(input_cs_steady==0 and input_cc_steady==0 and input_pv_steady==0 and input_sst_steady==0):
-        if not(input_cs_steady == 0 and input_cc_steady == 0 and input_pv_steady == 0 and input_sst_steady == 1):
-            if not(input_cs_steady == 0 and input_cc_steady == 0 and input_pv_steady == 1 and input_sst_steady == 0):
-                if not(input_cs_steady == 0 and input_cc_steady == 0 and input_pv_steady == 1 and input_sst_steady == 1):
-                    if not (input_cs_steady == 0 and input_cc_steady == 1 and input_pv_steady == 0 and input_sst_steady == 0):
-                        not_before = 1
-    """
+    '''
+    All parameter inputs to the function is tunable parameters from the system. 
 
+    @Amplitude: a list of 4, input stimulus to CS, CC, PV and SST
+    @teady_input: a list of 4, indicating which of the 4 types of neurons receive steady input
+    @spatialF, @temporalF, @spatialPhase: parameter to generate input distribution
+    @learning_rule: which learning rule will be applied 
+    @Ttau, @tau, @tau_learn, @tau_threshold: time-related parameters for training
+    @neurons, @phase_list: the neurons and training patterns for the system 
+    @isualization_mode: if we plot the results
+    '''
+   
     ########## network parameters ##########
     N = p.N
     prob = p.prob
@@ -87,11 +86,15 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
     ################## iterate through different initialisations ##################
     for sim in range(p.sim_number):
-
-        # store activities per simulation for intra-simulation evaluation
+        """
+        store activities per simulation for intra-simulation evaluation
+        sim: for each simulation
+        bl: activity value before learning
+        plot: for plotting, keep 50 time steps
+        """
         activity_eval_sim = []  # (radians, timestep/n, neurons)
         activity_eval_bl = []   # (radians, 5, neurons)
-        activity_plot_sim = [] # (radians, 50, neurons)
+        activity_plot_sim = []  # (radians, 50, neurons)
 
         ########## weight initialization ##########
         w_initial = np.abs(w_target)
@@ -101,7 +104,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             for j in train_neuron_type:
                 w_initial[i,j] = abs(np.random.normal(w_target[i,j], scale= 0.1*abs(w_target[i,j]))) 
 
-        # TODO:Trying total ramdomization in the future 
+        # TODO:Trying uniformed distribution randomization in the future 
         # w_initial = np.random.uniform(low=0, high=1, size=(4,4))
         w_initial[-2:,] *= -1
         
@@ -157,7 +160,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             raw_weights  = np.asarray(raw_weights)
             ############ data quality checking ############
 
-            # mean period of input, change according to termporalF
+            # !!! mean period of input, change according to termporalF
             n = 25
             # for non-steady input, take only mean for downstream analysis
             activity_mean = np.mean(raw_activity.reshape(-1,n, raw_activity.shape[-1]), axis = 1)
@@ -168,7 +171,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                 if visualization_mode:
                     print(f'nan exist in sim:{sim}: ', np.count_nonzero(~np.isnan(activity_mean[-1])))
                 # assign the value such that it is plotable
-                activity_mean[-1][np.isnan(activity_mean[-1])] = 1 
+                activity_mean[-1][np.isnan(activity_mean[-1])] = 0 
                 nan_counter += 1 
                 # break
 
@@ -194,9 +197,9 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
             # for evaluation 
             weights_eval = weights_mean[-50:]             # only the last 25 data points are needed
             activity_eval = activity_mean[int(-600/n):]   # only the last 500/n data is needed
+            # Learning time may change if we have learning_till_converge == T
             LearningTime = int(max((Sn.number_steps_before_learning - (Sn.step- Sn.tsteps))*Sn.delta_t/Sn.tau,0)/n)
             activity_before_learn = activity_mean[max(LearningTime-5, 0):LearningTime]
-            
             activity_eval_sim.append(activity_eval)
             activity_eval_bl.append(activity_before_learn)
             weights_eva_list.append(weights_eval)        
@@ -254,7 +257,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
     # ---------------- simulations end here ----------------
     ################## evaluation over all simulations ##################
-
+    
+    # selectivity dataframe, the mean, mean_std, std_mean of os, ds, os_p and activity
     selectivity_data, rel_data = Sn.selectivity_eva_all(os_mean_all, os_std_all, 
                                                         ds_mean_all, ds_std_all, 
                                                         os_paper_mean_all, os_paper_std_all,
@@ -270,7 +274,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     
     ################## Information and evaluation data storage ##################
     
-    # weight evaluation metric
+    # weight evaluation metric, Postsyn-Presyn
     weight_col = ['CS-CS', 'CS-CC', 'CS-PV', 'CS-SST',
                     'CC-CS', 'CC-CC', 'CC-PV', 'CC-SST',
                     'PV-CS', 'PV-CC', 'PV-PV', 'PV-SST',
@@ -297,7 +301,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         'not_eq_counter': not_eq_counter, 
         'activity_off': activity_off}
 
-    # basic configuration  
+    # basic configuration in meta-data df
     meta_data_ind = ['CC_input', 'CS_input', 'PV_input', 'SST_input', 
                         'tau', 'tau_learn', 'tau_threshold', 
                         "learning_rule", "training_mode", "training_pattern"]
@@ -315,67 +319,22 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     }
     
     ################## visualization under visualization_mode ##################
-    # A copy of those graphs in function is noted in the visualization.py in case we need to extract them
+    # plot all potential graphs for information extraction
     if visualization_mode:
         fig_size = (10,11)
         color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
         DateFolder, time_id = helper.create_data_dir(config=p)
-        saving = True
+        saving = False
 
         ########## bar plot for weight change and final weight value ##########
         vis.weights_barplot(weight_df, 
                         color_list = color_list, learning_rule = learning_rule,
                         config = p, saving = saving)
-        '''
-        fig_w, ax_w = plt.subplots(1,2, figsize=(15, 5))
-        x_pos_w = np.arange(weight_df.shape[1])
-        title_list_w = ['Mean weight','$\Delta$weight']
-        for i in range(2):
-            ax_w[i].bar(x_pos_w, list(weight_df.iloc[3*i,]), 
-                        yerr = list(weight_df.iloc[3*i+2,]), color = np.repeat(color_list, 4),
-                        align='center', alpha=0.5, ecolor='black')
-            ax_w[i].set_ylabel(title_list_w[i])
-            ax_w[i].set_xticks(x_pos_w)
-            ax_w[i].set_xticklabels(weight_df.columns)
-            ax_w[i].set_title(title_list_w[i])
-            ax_w[i].yaxis.grid(True)
-            ax_w[i].margins(x=0.02)
-            plt.setp(ax_w[i].get_xticklabels(), rotation=30, horizontalalignment='right')
-
-        fig_w.tight_layout(pad=1.0)
-        fig_w.suptitle(f"Weight by {p.learning_rule}", y = 1)
-        fig_w.show()
-        # fig_w.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_wei.png', dpi=100)
-        '''
 
         ########## bar plot for activity, os, ds and os_paper ##########
         vis.selectivity_barplot(selectivity_df, selectivity_bl_df,
                                 fig_size = fig_size, color_list = color_list, learning_rule = learning_rule,
                                 config = p, saving = saving)
-        '''
-        fig_s, ax_s = plt.subplots(2,2, figsize=fig_size)
-
-        x_pos_s = np.arange(selectivity_df.shape[1])
-        title_list_s = ['Mean activity',                'Orientational selectivity (OS)',
-                        'Directional selectivity (DS)', 'Orientational selectivity_p (OS_p)']
-        
-        for i in range(4):
-            axs = ax_s.flatten()[i]
-            axs.bar(x_pos_s, list(selectivity_df.iloc[3*i,]), 
-                    yerr = list(selectivity_df.iloc[3*i+2,]), color = color_list,
-                    align='center', alpha=0.5, ecolor='black')
-            axs.set_ylabel(title_list_s[i])
-            axs.set_xticks(x_pos_s)
-            axs.set_xticklabels(selectivity_df.columns)
-            axs.set_title(title_list_s[i])
-            axs.yaxis.grid(True)
-            axs.margins(x=0.02)
-        
-        fig_s.tight_layout(pad=1.0)
-        fig_s.suptitle(f"Activity by {p.learning_rule}", y = 1)
-        fig_s.show()
-        # fig_s.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_act_OS.png', dpi=100)
-        '''
 
         ########## activity plot with error bar ##########
         line_col    = ['darkblue','deeppink','seagreen','fuchsia']
@@ -400,36 +359,6 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                         color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
                         neuron_list = neuron_list, line_col = line_col,
                         config = p, saving = saving)
-        '''
-        fig_ap, ax_ap = plt.subplots(2,2, figsize=fig_size)    # 4 input orientations
-        x_plot = np.linspace(0, Sn.Ttau, plot_steps)
-        
-        for i in range(4):  
-            axs_ap = ax_ap.flatten()[i]
-            act = mean_act_neuron[:,i]   # activities of same radian (neurontypes, 50)
-            err = error_act_neuron[:,i]  # std of the same radian
-
-            for j in range(act.shape[0]):
-                axs_ap.plot(x_plot, act[j], 
-                            color = line_col[j], label = neuron_list[j])
-                axs_ap.fill_between(x_plot, act[j]-err[j], act[j]+err[j],
-                                    alpha=0.2, facecolor= color_list[j])
-            axs_ap.margins(x=0)
-            axs_ap.set_ylabel("Firing rates")
-            axs_ap.set_xlabel("Time steps")
-            axs_ap.set_title(f"Degree: {p.degree[i]}")
-
-        handles_a, labels_a = axs_ap.get_legend_handles_labels()
-        by_label_a = dict(zip(labels_a, handles_a))
-        fig_ap.legend( by_label_a.values(), 
-                    by_label_a.keys(),
-                    loc = 'lower center', 
-                    ncol = 4, bbox_to_anchor=(0.5, -0.02))
-        fig_ap.tight_layout(pad=1.0)
-        fig_ap.suptitle(f"Activity by {p.learning_rule}", y=1)
-        fig_ap.show()
-        # fig_ap.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_plot_act.png', dpi=100)
-        '''
 
         ########## weight plot with error bar ##########
         # prepare the data
@@ -457,44 +386,9 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                         color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
                         neuron_list = neuron_list, line_col = line_col,
                         config = p, saving = saving)        
-        '''
-        # starting the plot
-        fig_wp, ax_wp = plt.subplots(2,2, figsize=fig_size)    # 4 post-synaptic neurons
-        label_list_w = ['cs pre', 'cc pre', 'pv pre', 'sst pre']
-
-        for i in range(4):           # 4 postsyn neurons
-            axs_wp = ax_wp.flatten()[i]
-            weis = mean_weights[:,i]   # postsynaptic neurons, (50, presyn)
-            err = std_weights[:,i]    
-
-            for j in range(weis.shape[-1]):     
-                axs_wp.fill_between(x_plot, weis[:,j]-err[:,j], weis[:,j]+err[:,j],
-                                    alpha=0.2, facecolor= color_list[j])
-                axs_wp.plot(x_plot, weis[:,j], 
-                            color = line_col[j], label = label_list_w[j])
-                # plotting the reference line
-                axs_wp.axhline(y = p.w_compare[i,j], linewidth = 2, 
-                            color = color_list[j], linestyle = '--')
-
-            axs_wp.margins(x=0)
-            axs_wp.set_ylabel("weights")
-            axs_wp.set_xlabel("Time steps")
-            axs_wp.set_title(f"postsyn(col):{neuron_list[i]}")
-        
-        handles, labels = axs_wp.get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-        fig_wp.legend( by_label.values(), 
-                    by_label.keys(),
-                    loc = 'lower center', 
-                    ncol = 4, bbox_to_anchor=(0.5, -0.02))
-        fig_wp.tight_layout(pad=1.0)
-        fig_wp.suptitle(f"Weights by {p.learning_rule}", y = 1)
-        fig_wp.show()
-        # fig_wp.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_plot_wei.png', dpi=100)
-        '''
 
         ##### Activity distribution #####
-        # ??? is weight distribution necessary? 
+        # TODO: Do we need to plot the weight distribution by the end of training?
         # weights_dis = np.mean(mean_weights_sim[-5:,:, :], axis = 0) # (presyn, postsyn)
         
         # data processing: a dataframe. col: neuron types, row: neuron response sorted by orientations
@@ -513,24 +407,8 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         vis.activity_histogram(activity_df, 
                             color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
                             config = p, saving = saving)        
-        '''
-        fig_ad, ax_ad = plt.subplots(2, 2, figsize=fig_size, gridspec_kw=dict(width_ratios=[1, 1]))
-        for i in range(4):
-            axs_ad = ax_ad.flatten()[i]
-            sns.histplot(activity_df, x = activity_df.columns[i], hue='Degree', kde=True, 
-                        stat="density", fill = True, alpha = 0.4, 
-                        palette = color_list, multiple="stack", 
-                        common_norm=False, ax = ax_ad.flatten()[i])
-            
-            axs_ad.margins(x=0.02)
-            axs_ad.set_xlabel("Firing rate")
-            axs_ad.set_title(f"{activity_df.columns[i]}")
-        fig_ad.tight_layout(pad=1.0)
-        fig_ad.suptitle(f"Activity distribution by {p.learning_rule}", verticalalignment = 'top', y = 1)
-        fig_ad.show()
-        # fig_ad.savefig(f'data/{DateFolder}/{time_id}_{p.learning_rule}_dis_act.png', dpi=100)
-        '''
-        ##### TODO: Correlation between the mean weights and its activity #####
+ 
+         ##### TODO: Correlation between the mean weights and its activity #####
 
         # updating the data storing dictionary
         sim_dic.update({
@@ -554,6 +432,11 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     return sim_dic, activity_plot_list, weights_plot_list
 
 def objective(params):
+    """
+    For hyperparameter tuning: 
+    Define a parameter space, using the randomly selected parameter value to run the network,
+    then we return the loss function value for the system to find the best parameter pairs.
+    """
     amplitude = [params['cc'], params['cs'], params['pv'], params['sst']]
     tau_learn, tau_threshold_fac =  params['tau_learn'], params['tau_threshold_fac']
     sim_dic, _, _ = run_simulation( 
@@ -596,10 +479,10 @@ if __name__ == "__main__":
 
 #%%  Hyper parameter tuning
 if __name__ == "__main__":            
-    # Hyperpot attempt
+    # using Hyperpot for tuning
     if p.tuning == True: 
-        # define domain
         
+        # define parameter space
         space = {
             'cs': hyperopt.hp.uniform('cs', 0, 20),
             'cc': hyperopt.hp.uniform('cc', 0, 20),
@@ -609,18 +492,18 @@ if __name__ == "__main__":
             'tau_threshold_fac': hyperopt.hp.uniform('tau_threshold_fac', 0.001, 1),
         }        
 
-        # define algorithm
+        # define algorithms
         algo_tpe = hyperopt.tpe.suggest
         algo_rand = hyperopt.rand.suggest
 
-        # define history
+        # define history (for saving tuning results)
         trails = hyperopt.Trials()
 
         # Start hyperparameter search
         tpe_best = hyperopt.fmin(fn=objective, space=space, algo=algo_tpe, trials=trails, 
-                        max_evals=300)
+                                # define maximal round for tuning duration
+                                max_evals=300)
 #%% Tuning results visualization
-
         # Printing out results
         print('Minimum loss attained with TPE:    {:.4f}'.format(trails.best_trial['result']['loss']))
         print('\nNumber of trials needed to attain minimum with TPE: {}'
@@ -628,7 +511,6 @@ if __name__ == "__main__":
         print('\nBest input set: {}'.format(tpe_best)) 
 
         # Saving the results into a csv file: still have to see here
-        
         tpe_results = pd.DataFrame({'loss': [x['loss'] for x in trails.results], 
                                     'iteration': trails.idxs_vals[0]['cc'],
                                     'cs': trails.idxs_vals[1]['cs'],
@@ -637,23 +519,15 @@ if __name__ == "__main__":
                                     'sst': trails.idxs_vals[1]['sst'],
                                     'tau_learn': trails.idxs_vals[1]['tau_learn'],
                                     'tau_threshold': trails.idxs_vals[1]['tau_threshold_fac'],}).fillna(method='ffill')
-        # plot and visualize the value trace
-        now = datetime.now() # current date and time
-        DateFolder = now.strftime('%m_%d')
-        if os.path.exists(f'data/{DateFolder}') == False:
-            os.makedirs(f'data/{DateFolder}')
-        time_id = now.strftime("%m%d_%H:%M")
-        Tuning_Title = f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}_TuningResults.csv'
-
-        filepath = Path(Tuning_Title)  
-        filepath.parent.mkdir(parents=True, exist_ok=True)
         
-        # saving the hyperparameter tuning profile
+        # save the tuning results
+        DateFolder, time_id = helper.create_data_dir(config=p)
+        filepath = Path(f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}_TuningResults.csv')
         tpe_results.to_csv(filepath, float_format='%.3f')
         
         # TODO: plotting the hyperparameter tuning profile 
 
-        # put the best parameter back and see the results
+        # plot the best attempt results to see how it works
         Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
         
         sim_dic_best, activity_plot_list, weights_plot_list = run_simulation( Amplitude= Best_amplitude,
