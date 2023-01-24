@@ -2,27 +2,26 @@
 
 This model of the V1, layer 5 includes Cortico-Cortical (CC), Cortico-Subcortical (CS), PV and SST neurons. Plasticity is not implemented yet. In this model, we observe orientation and direction selectivity.
 
-## Requirements
+## 1. Requirements
 
 Use ```conda env create -f network.yml``` to unpack the conda environment. Or download with ```conda install <module>``` the requirements manually. After that, activate the environment with ```conda activate network```
 
-## Run simulation
+## 2. Run simulation
 
 Use ```python3 ds_os_model.py <put config here>``` where the second argument is the config you want to use. For instance use ```configs.test_config```
 
 > Change: in order to incorporate hyperparameter tuning, the ```configs/debug_config``` is directly used as the input configuration. For tuning just change the configuration file firectly.
 
-## Network workflow
+## 3. Network workflow
 
 > insert network flowchart here
 
----
 
-## Input parameters
+## 4. Input parameters
 
 The input parameters in this network can be sectioned into 3 parts:
 
-### Parameters for network configuration:
+### 4.1 Parameters for network configuration:
 
 General configurations considering how the network updates neuron weights and activities are:
 
@@ -44,22 +43,21 @@ Additionally, to train the model to our deserable configuration, we need to set 
 * Yet in our model, the target weight cannot be directly compared as we also introduce the probability of two types of neurons forming a synapse, as well as the matrix scaling, the eventual weight configuration to be compared should is set to be another parameter ```w_compare```
 * ```w_initial```: the initial weights for the network input, the initial weight is sampled using guassian distribution with mean as target weight and std as  0.25. The randomization is only done to neurons being trained indicated by ```neurons```, the rest of the weights are set to be the target weight. 
 
-### Parameters for training time:
+### 4.2 Parameters for training time:
 
 * Total length and training steps are defined by ```(Ttau*tau)/delta_t```
 * ```tau```: reverse of neuron activity updating scale 
 * ```tau_learn```: reverse of weight updating scale
 * ```tau_threshold```: reverse of threshold updating scale
 
-### Parameters for stimulus input:
+### 4.3 Parameters for stimulus input:
 
 * ```steady_input```: Indicating if the input of those parameters are steady or flunctrating. if ```steady```, then ```temporalF``` is not used.
 * ```amplitude```: Input limit of the stimulus parameters
 * ```spatialF```, ```temporalF```, ```spatialPhase```: Parameters for the stimulus input eventually. If ```temporalF``` changes, the period to take weight/activity mean, as well as the training parameters in ```training_till_convergence``` section of the network should be changed.
 
----
 
-## Output
+## 5. Output
 
 For training of the network on single instance, the simulator returns a dictionary with the following returning values:
 
@@ -78,9 +76,8 @@ If ```visualization_mode``` is activated, then the network will also plot the fo
 
 meanwhile, it also updates the dictionary with ```loss_value```, which reflects the loss function value, as well as the data for weight and activity plotting. 
 
----
 
-## Parameter tuning 
+## 6. Parameter tuning 
 
 Current method for parameter tuning: Bayesian parameter inference. (Potentially varational bayesian inference in the future) 
 
