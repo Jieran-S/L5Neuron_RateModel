@@ -13,29 +13,38 @@ from datetime import datetime
 
 
 class SimpleNetwork:
-    #%% Initialization of network parameters
+    #%% ############### Initialization of network parameters ###############
+    """
+    W_rec: weight matrix (initial weight matrix)
+    W_project: eye matrix for weight structure
+    other parameters are explained in the config files.
+    """
     def __init__(self,
                 W_rec,
                 W_project,
+                # update function parameters
                 nonlinearity_rule,
+                gamma=1,
                 integrator='forward_euler',
+                update_function='version_normal',
+                learning_rule = 'Simple_test',
+                # learning timestep parameters
                 delta_t=0.015, 
                 number_steps_before_learning = 250,
                 tau=5.,
                 tau_learn=1000,
                 tau_threshold=1000,
                 Ttau=6,
-                update_function='version_normal',
-                learning_rule = 'Simple_test',
-                gamma=1,
+                # training scale parameters
                 W_structure=None,
                 N = np.array([45, 275, 46, 34]),
                 neurons = 'excit_only',
                 phase_list = np.repeat(['CS','CC','Rest'], 10) ):
-        self.W_rec =W_rec
-        self.W_input=W_project
+
+        self.W_rec = W_rec
+        self.W_input= W_project
         if W_structure is not None:
-            self.W_structure=W_structure
+            self.W_structure = W_structure
         else:
             # N x N matrix (postsynaptic neuron no. x total neuron?)
             self.W_structure=np.ones((W_rec.shape[0], W_project.shape[-1]))
@@ -101,10 +110,10 @@ class SimpleNetwork:
         else:
             raise Exception("Unknown integrator ({0})".format(self.integrator))
     
-    #%% ###############  simulation setup ############### 
+    #%% ############### simulation setup ############### 
     def _check_input(self, inputs):
         '''
-        Make sure the input is of the same type and structure.
+        Check if the input stimulus are of the same type and dimension of the weight matrix
         '''
         Ntotal = self.tsteps
         assert inputs.shape[-1]==self.W_input.shape[-1]
@@ -116,6 +125,11 @@ class SimpleNetwork:
         return inputs_time
 
     def check_convergence(self, activities):
+        """
+        Evaluating if the activity of the neurons converges by looking at if the 
+        neurons rate in the last 250-500 steps are significantly different from that of 0-250 steps.
+        Checking convergence only every 25 steps to speed up the time. 
+        """
         #evaluating only the mean value for the activity
         if activities.shape[0]%25 !=0:
             return False
@@ -133,10 +147,27 @@ class SimpleNetwork:
                 return False
             
     def run(self, inputs, start_activity, simulate_till_converge = True):
+        """
+        Simulation update methods for activity and weights 
+        Activity: 
+        1. Given current activity, calculate total postsyn input (current weight * current activity + input) 
+        2. Calculate change rate in activity: total postsyn input -> nonlinear activation -> - current activity -> x Tau(time scale)
+        3. Update activity in delta-t: Integrator function of current activity, activity change rate and delta-t
+
+        Weight: 
+        1. Don't update weight until activity stablizes
+        2. Given previous weights, activities, calculate weight changes rate -> x 1/tau_learn (weight learn time scale)
+        3. Update the weight based on integrator function (current weight, delta-t, and weight change rate)
+        
+        Update loop: Update activity -> Update weight -> update activity subsequently.
+
+        simulate_till_converge: Extend the simulation till activity converges, max 2*N steps
+        train_mode: Allowing alternating weight updates for only CC/CS/None
+        """
         Ntotal = self.tsteps
         all_act=[]
-        all_act.append(start_activity)
         all_weights=[]
+        all_act.append(start_activity)
         Latest_weight = self.W_rec
         
         inputs_time = self._check_input(inputs)
@@ -176,7 +207,8 @@ class SimpleNetwork:
                                             neurons = self.neurons,
                                             train_mode = train_mode)
             
-            # attach only every 1 in 5 weight matrix to save space
+            # attach only every 1 weight matrix to save space, 
+            # if not taking every step, change the %1 to %n
             if step%1 == 0:
                 all_weights.append(new_weights)
             Latest_weight = new_weights
@@ -184,15 +216,18 @@ class SimpleNetwork:
         if simulate_till_converge == True: 
             # Adding convergence check for last 100 steps
             # while self.check_convergence(activities=np.array(all_act)) != True: 
+
+            # Use largest eigen value to test if the activity converges
             while np.amax(np.linalg.eigvals(Latest_weight)) <= 0.8:
                 '''
-                Remark: For steady input, we can just reuse the previous input.
-                But for moving input related to t, we need to find the timing for the cycle to match the smooth transition 
-                np.cos(temporalF * t) -> Find the position for np.cos(temporalF * step)
-                Closest number: remainder of step divided by 2 pi
+                Find the closest input value. by dividing the input over its period.
+                #!!! if steady input: all input the same, input-step can be anything 
+                #!!! if fluctruating input: Have to test the peroid yourself. 
+                    For TemporalF = 50, the period can be set as below
                 '''
                 step = step+1
                 input_step = 10 + step - Ntotal
+                # remainder of 2*pi is not working as the input is a scaled integer sin function.
                 # int(Ntotal%(2*np.pi)) + step - Ntotal
                 
                 new_act=self.integrator_function(self.update_act,  #intergation method
@@ -223,13 +258,16 @@ class SimpleNetwork:
                                             N = self.N, 
                                             neurons = self.neurons,
                                             train_mode = train_mode)
+
                 if step%1 == 0:
                     all_weights.append(new_weights)
                 Latest_weight = new_weights
 
+                # If the step reaches the max iteration, break the loop
                 if step > int(Ntotal*2 - 10): # int(Ntotal%(2*np.pi)) - 1):
                     break
         
+        # leaving only Ntotal steps data so that data across different simulation remains the same
         self.activity = all_act[-Ntotal:]
         self.weights = all_weights[-Ntotal:]
         self.step = step + 1
@@ -239,6 +277,7 @@ class SimpleNetwork:
 
     def activity_eva(self, activity, n = 25, duration = 500):
         '''
+        Intra-simulation activity evaluation on the 4 input directions
         input: activity: 3D matrix (radians, Tstep/n, N)
         n: period based on TemporalF
 
@@ -276,16 +315,15 @@ class SimpleNetwork:
         N: neuron compositions
 
         As degree should not be a factor for weight differences, we
-        treated the weight as nothing but an extra round of simulation
+        treated different radians as nothing but an extra round of simulation
 
         W_delta: difference between the start and end of learing 
             W_dmean: mean of differences across simulation
             W_dstd_mean: mean of the intra-simulation std of delta weight
-            W_mean_std: std of mean W_delta across simulation
+            W_dmean_std: std of mean W_delta across simulation
 
         W_mean: mean value for weight the final product
-            W_mean: 
-
+            W_mean, W_std_mean, W_mean_std are similiar to that above
         '''
         def weight_summary(weights_vec, N):
             """
@@ -294,8 +332,8 @@ class SimpleNetwork:
             N: neuron composition
 
             Output
-            a mean matrix (sim, 4,4)
-            a std matrix (sim, 4,4)
+            a mean matrix (sim, 4,4) (postsyn, presyn)
+            a std matrix (sim, 4,4)  (postsyn, presyn)
             """
             W_std = W_mean = np.empty([weights_vec.shape[0], len(N), len(N)])
 
@@ -393,8 +431,17 @@ class SimpleNetwork:
                             ds_mean_all,ds_std_all, 
                             os_paper_mean_all, os_paper_std_all,
                             a_mean_all, a_std_all):
+        """
+        input: 
+        os_mean_all: all the orientational seletivity throughout simulations (sim, 4)
+        all other inputs follow the same shape (sim,4), be sure to check the shape before input
 
-        def extra_info(mean_all, std_all):
+        Output: 
+        a dataframe of (12,4) representing the os, ds, os_p, and activity of the 4 types of 
+        neurons in terms of their mean, std and std across simulation. 
+        rel_data: Finalized OS, DS, and OS_p data 
+        """
+        def extract_info(mean_all, std_all):
             mean_data = np.mean(np.array(mean_all),axis=0)
             std_data = np.nanstd(np.array(mean_all), axis=0)
             std_sim_data = np.mean(np.array(std_all), axis=0)
@@ -404,9 +451,9 @@ class SimpleNetwork:
         os_rel, ds_rel, os_paper_rel = None, None, None
         
         if os_mean_all != []:
-            os_mean_data, os_std_data, os_std_sim_data = extra_info(os_mean_all, os_std_all)
-            ds_mean_data, ds_std_data, ds_std_sim_data = extra_info(ds_mean_all, ds_std_all)
-            os_paper_mean_data, os_paper_std_data, os_paper_std_sim_data = extra_info(os_paper_mean_all, os_paper_std_all)
+            os_mean_data, os_std_data, os_std_sim_data = extract_info(os_mean_all, os_std_all)
+            ds_mean_data, ds_std_data, ds_std_sim_data = extract_info(ds_mean_all, ds_std_all)
+            os_paper_mean_data, os_paper_std_data, os_paper_std_sim_data = extract_info(os_paper_mean_all, os_paper_std_all)
 
             if os_mean_data[1] > 0.00001 and ds_mean_data[1] > 0.00001:
                 os_rel = (os_mean_data[0] - os_mean_data[1]) / (os_mean_data[0] + os_mean_data[1])
@@ -418,7 +465,7 @@ class SimpleNetwork:
             os_paper_std_data = os_std_sim_data = ds_std_sim_data = os_paper_std_sim_data = \
             [0,0,0,0]
         
-        a_mean_data, a_std_data, a_std_sim_data = extra_info(a_mean_all, a_std_all)
+        a_mean_data, a_std_data, a_std_sim_data = extract_info(a_mean_all, a_std_all)
 
         selectivity_data = np.concatenate((  a_mean_data,    a_std_data,     a_std_sim_data, 
                                             os_mean_data,   os_std_data,    os_std_sim_data, 
@@ -430,6 +477,8 @@ class SimpleNetwork:
 
     def plot_activity(self, activity, sim, degree = 0, saving = False):
         '''
+        # !!! This function is only for debugging purpose, not including different radian input, for radian-varying one please see visualization.py
+
         input:
         activity: (simulation, radians, time-step, neurons)
         sim: which simulation to plot
@@ -498,6 +547,7 @@ class SimpleNetwork:
     def plot_weights(self, weights, sim, degree = 0, saving = False):
 
         '''
+        # !!! This function is only for debugging purpose, not including different radian input, for radian-varying one please see visualization.py
         input:
         weights: (simulation * radians, time-step, post syn, pre syn)
         sim: which simulation to plot

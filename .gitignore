@@ -27,4 +27,4 @@ configs/__pycache__/test_config.cpython-39.pyc
 configs/__pycache__/test_config.cpython-39.pyc
 *.pkl
 *.npy
-sel_HPTuning.html
+*.html
