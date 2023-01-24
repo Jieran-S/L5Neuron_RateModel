@@ -26,8 +26,8 @@ Relationship:   Tau > Tau_threshold > Tau_learn
 """
 tau = 0.1
 Ttau = 250
-tau_learn = 1997.467    # 1963.0376975536815
-tau_threshold = 2.1     # 2.7922382927606537
+tau_learn = 1404.3319412873145      # 1997.467    # 1963.0376975536815
+tau_threshold = 11.62852     # 2.7922382927606537
 
 ####### Network parameters #######
 # Training rule specification
@@ -105,7 +105,8 @@ degree = [0, 90, 180, 270]
 
 # Input form and amplitude distributionInput_negative()
 steady_input = [0,0,0,0] #[1,1,1,1]
-amplitude = [6,5,10,5]
+amplitude = [17.34637650447213, 3.485229955567148, 6.685986709907562, 3.7992341006167583]
+            #[6,5,10,5]
 spatialF = 10
 temporalF = 50
 spatialPhase = 1

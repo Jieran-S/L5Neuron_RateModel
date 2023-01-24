@@ -320,11 +320,12 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         fig_size = (10,11)
         color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
         DateFolder, time_id = helper.create_data_dir(config=p)
+        saving = True
 
         ########## bar plot for weight change and final weight value ##########
         vis.weights_barplot(weight_df, 
                         color_list = color_list, learning_rule = learning_rule,
-                        config = p, saving = False)
+                        config = p, saving = saving)
         '''
         fig_w, ax_w = plt.subplots(1,2, figsize=(15, 5))
         x_pos_w = np.arange(weight_df.shape[1])
@@ -350,7 +351,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         ########## bar plot for activity, os, ds and os_paper ##########
         vis.selectivity_barplot(selectivity_df, selectivity_bl_df,
                                 fig_size = fig_size, color_list = color_list, learning_rule = learning_rule,
-                                config = p, saving = False)
+                                config = p, saving = saving)
         '''
         fig_s, ax_s = plt.subplots(2,2, figsize=fig_size)
 
@@ -398,7 +399,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         vis.activity_plot(act_plot_dic, 
                         color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
                         neuron_list = neuron_list, line_col = line_col,
-                        config = p, saving = False)
+                        config = p, saving = saving)
         '''
         fig_ap, ax_ap = plt.subplots(2,2, figsize=fig_size)    # 4 input orientations
         x_plot = np.linspace(0, Sn.Ttau, plot_steps)
@@ -455,7 +456,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
         vis.weights_plot(wei_plot_dic, 
                         color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
                         neuron_list = neuron_list, line_col = line_col,
-                        config = p, saving = False)        
+                        config = p, saving = saving)        
         '''
         # starting the plot
         fig_wp, ax_wp = plt.subplots(2,2, figsize=fig_size)    # 4 post-synaptic neurons
@@ -511,7 +512,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
 
         vis.activity_histogram(activity_df, 
                             color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
-                            config = p, saving = False)        
+                            config = p, saving = saving)        
         '''
         fig_ad, ax_ad = plt.subplots(2, 2, figsize=fig_size, gridspec_kw=dict(width_ratios=[1, 1]))
         for i in range(4):
@@ -617,7 +618,7 @@ if __name__ == "__main__":
 
         # Start hyperparameter search
         tpe_best = hyperopt.fmin(fn=objective, space=space, algo=algo_tpe, trials=trails, 
-                        max_evals=5)
+                        max_evals=300)
 #%% Tuning results visualization
 
         # Printing out results
@@ -650,8 +651,7 @@ if __name__ == "__main__":
         # saving the hyperparameter tuning profile
         tpe_results.to_csv(filepath, float_format='%.3f')
         
-        # plotting the hyperparameter tuning profile 
-
+        # TODO: plotting the hyperparameter tuning profile 
 
         # put the best parameter back and see the results
         Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
