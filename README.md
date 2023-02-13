@@ -14,7 +14,7 @@ Use ```python3 ds_os_model.py <put config here>``` where the second argument is 
 
 ## 3. Network workflow
 
-![rate_model_neuronal_network](https://user-images.githubusercontent.com/91852421/218517154-711ab590-1792-425e-ada4-ccd8f62936e3.png)
+![Single Cell Pipeline - Neural_simulator](https://user-images.githubusercontent.com/91852421/218518414-bda42cc6-6525-475f-bd88-ae23afd62640.png)
 
 ## 4. Input parameters
 
