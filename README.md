@@ -14,8 +14,7 @@ Use ```python3 ds_os_model.py <put config here>``` where the second argument is 
 
 ## 3. Network workflow
 
-> insert network flowchart here
-
+![Neuron_rate_model](https://user-images.githubusercontent.com/91852421/218515791-641e1446-352d-4e39-b8df-0792d6569a6a.png)
 
 ## 4. Input parameters
 
