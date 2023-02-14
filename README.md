@@ -14,7 +14,8 @@ Use ```python3 ds_os_model.py <put config here>``` where the second argument is 
 
 ## 3. Network workflow
 
-![L5_neuron_rate_model](https://user-images.githubusercontent.com/91852421/218749685-0a5aaae0-3757-414f-9010-d0d8047d2d6f.png)
+![L5_neuron_rate_model](https://user-images.githubusercontent.com/91852421/218749790-0954ceca-c649-4af5-a94d-543c83df0cd7.png)
+
 
 ## 4. Input parameters
 
