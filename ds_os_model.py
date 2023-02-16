@@ -592,12 +592,51 @@ if __name__ == "__main__":
                                     'tau_learn': trails.idxs_vals[1]['tau_learn'],
                                     'tau_threshold': trails.idxs_vals[1]['tau_threshold_fac'],}).fillna(method='ffill')
         
+
         # save the tuning results
         DateFolder, time_id = helper.create_data_dir(config=p)
         filepath = Path(f'data/{DateFolder}/{p.name_sim}_{time_id}_{p.learning_rule}_TuningResults.csv')
         tpe_results.to_csv(filepath, float_format='%.3f')
         
-        # TODO: plotting the hyperparameter tuning profile 
+        # Visualization of the tuning record
+        color_list = ["#FF0000", "#00A08A","#F2AD00","#5BBCD6"]
+        line_col    = ["#800000",'#02401B','#B3672B','#046C9A']
+       
+        # Find the rolling average, the actual value the tuning is getting into 
+        tpe_results['tau_threshold_value'] = tpe_results['tau_learn'] * tpe_results['tau_threshold']
+        tpe_results['rolling_average_tau_learn'] = tpe_results['tau_learn'].rolling(50).mean().fillna(method = 'bfill')
+        tpe_results['rolling_average_tau_threshold'] = tpe_results['tau_threshold_value'].rolling(50).mean().fillna(method = 'bfill')
+        tpe_results['rolling_average_loss'] = tpe_results['loss'].rolling(50).mean().fillna(method = 'bfill')
+
+        # set columns for plotting 
+        plot_xvar_col = ['tau_learn', 'tau_threshold_value', 'loss']
+        plot_hline_col = ['rolling_average_tau_learn', 'rolling_average_tau_threshold','rolling_average_loss']
+        line_col    = ["#800000",'#02401B','#B3672B','#046C9A']
+
+        # dot plots
+        fig_h, ax_h = plt.subplots(1,3, figsize=(13,5))
+        for i in range(3):
+            axs = ax_h.flatten()[i]
+            axs.plot(tpe_results['iteration'], tpe_results[plot_xvar_col[i]], 'bo', alpha = 0.5, color = color_list[i])
+            axs.hlines(tpe_results[plot_hline_col[i]].mean(), 0, tpe_results.shape[0], linestyles = '--', colors = line_col[i])
+            axs.set_xlabel('Iteration', size = 15)
+            axs.set_ylabel(plot_xvar_col[i], size = 15)
+            
+        fig_h.tight_layout(pad=1.0)
+        fig_h.suptitle("TPE Sequence of Target Values", y = 1, size = 15)
+        
+        # Histogram plots
+        fig_hist, ax_hist = plt.subplots(1,3, figsize=(13,5))
+        for i in range(3):
+            axs = ax_hist.flatten()[i]
+            axs.hist(tpe_results[plot_xvar_col[i]], bins = 50, color=color_list[i], edgecolor = line_col[i])
+            axs.set_xlabel(plot_xvar_col[i], size = 15)
+            axs.set_ylabel("Counts", size = 15)
+
+        fig_hist.tight_layout(pad=2)
+        fig_hist.suptitle("TPE histogram of Target Values", y = 1, size = 15)
+          
+        print('Best Loss of {:.4f} occured at iteration {}'.format(tpe_results['loss'][0], tpe_results['iteration'][0]))
 
         # plot the best attempt results to see how it works
         Best_amplitude = [tpe_best['cs'], tpe_best['cc'], tpe_best['pv'], tpe_best['sst']]
