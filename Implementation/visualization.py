@@ -156,34 +156,63 @@ def weights_barplot(weight_df, **kwargs):
     Plot the bar plot for different types of data
     """
     color_list = kwargs['color_list']
+    line_col = kwargs['line_col']
     p = kwargs['config']
     saving = kwargs['saving']
     learning_rule = kwargs['learning_rule']
+
     DateFolder, time_id = helper.create_data_dir(config=p)
 
+    w_compare = abs(p.w_compare.T.flatten())
+    bar_width = 0.45
+    x_pos_i = np.arange(weight_df.shape[1])
+    x_pos_w = [x + 0.45 for x in x_pos_i]
+    x_pos_t_start = (x_pos_w + x_pos_i)/2 - bar_width
+    x_pos_t_end = (x_pos_w + x_pos_i)/2 + bar_width
 
-    fig_w, ax_w = plt.subplots(1,2, figsize=(15, 5))
-    x_pos_w = np.arange(weight_df.shape[1])
+
+    fig_w, ax_w = plt.subplots(2,1, figsize=(15, 10))
     title_list_w = ['Mean weight','$\Delta$weight']
     for i in range(2):
-        ax_w[i].bar(x_pos_w, list(weight_df.iloc[3*i,]), 
-                    yerr = list(weight_df.iloc[3*i+2,]), color = np.repeat(color_list, 4),
-                    align='center', alpha=0.5)
+        if i == 0:
+            
+            ax_w[i].bar(x_pos_i, list(weight_df.iloc[3*i + 3,]), 
+                        yerr = list(weight_df.iloc[3*i+5,]), color = np.repeat(color_list, 4),
+                        align='center', alpha=0.5, label = 'initial', width = bar_width)
+            ax_w[i].errorbar(x_pos_i, list(weight_df.iloc[3*i + 3,]), yerr = list(weight_df.iloc[3*i+5,]),
+                    fmt = 'none', capsize = 4, ecolor = 'gray')
+
+            ax_w[i].bar(x_pos_w, list(weight_df.iloc[3*i,]), 
+                        yerr = list(weight_df.iloc[3*i+2,]), color = np.repeat(line_col, 4),
+                        align='center', alpha=0.5, label = 'final', width = bar_width)
+
+            ax_w[i].hlines(list(w_compare), xmin = x_pos_t_start, xmax = x_pos_t_end, 
+                        color = "black", linestyles = "dotted", label = "target")
+
+        else:
+                ax_w[i].bar(x_pos_w, list(weight_df.iloc[3*i,]), 
+                        yerr = list(weight_df.iloc[3*i+2,]), color = np.repeat(color_list, 4),
+                        align='center', alpha=0.5)
+
         ax_w[i].errorbar(x_pos_w, list(weight_df.iloc[3*i,]), yerr = list(weight_df.iloc[3*i+2,]),
-                    fmt = '-o', capsize = 10, ecolor = 'black')
+                    fmt = 'none', capsize = 4, ecolor = 'gray')
+        
         ax_w[i].set_ylabel(title_list_w[i])
         ax_w[i].set_xticks(x_pos_w)
         ax_w[i].set_xticklabels(weight_df.columns)
         ax_w[i].set_title(title_list_w[i])
         ax_w[i].yaxis.grid(True)
         ax_w[i].margins(x=0.02)
+        if i == 0: 
+            ax_w[i].legend()
         plt.setp(ax_w[i].get_xticklabels(), rotation=30, horizontalalignment='right')
 
-    fig_w.tight_layout(pad=1.0)
+    fig_w.tight_layout(pad=2.0)
     fig_w.suptitle(f"Weight by {learning_rule}", y = 1)
     fig_w.show()
     if saving:
         fig_w.savefig(f'data/{DateFolder}/{time_id}_{learning_rule}_wei.png', dpi=100)
+
 
 def selectivity_barplot(selectivity_df, selectivity_df_bl, **kwargs):
 
@@ -195,31 +224,34 @@ def selectivity_barplot(selectivity_df, selectivity_df_bl, **kwargs):
     DateFolder, time_id = helper.create_data_dir(config=p)
 
     fig_s, ax_s = plt.subplots(2,2, figsize=fig_size)
-    bar_width = 0.6
+    bar_width = 0.4
     x_pos_s = np.arange(selectivity_df.shape[1])
-    x_pos_b = [x + 0.2 for x in x_pos_s]
+    x_pos_b = [x + 0.4 for x in x_pos_s]
     title_list_s = ['Mean activity',                'Orientational selectivity (OS)',
                     'Directional selectivity (DS)', 'Orientational selectivity_p (OS_p)']
-    
+
     for i in range(4):
         axs = ax_s.flatten()[i]
         axs.bar(x_pos_s, list(selectivity_df_bl.iloc[3*i,]), color = color_list[0],
                 align='center', alpha=0.5, label = 'before', width = bar_width)
-        axs.bar(x_pos_b, list(selectivity_df.iloc[3*i,]), color = color_list[1],
+        axs.bar(x_pos_b, list(selectivity_df.iloc[3*i,]), color = color_list[-1],
                 align='center', alpha=0.5, label = 'after', width = bar_width)
         axs.errorbar(x_pos_s, list(selectivity_df_bl.iloc[3*i,]),yerr = list(selectivity_df_bl.iloc[3*i+2,]),
-                    fmt = '-o', capsize = 10, ecolor = 'black')
+                    fmt = 'none', capsize = 5, ecolor = 'gray')
         axs.errorbar(x_pos_b, list(selectivity_df.iloc[3*i,]),yerr = list(selectivity_df.iloc[3*i+2,]),
-            fmt = '-o', capsize = 10, ecolor = 'black')         
+            fmt = 'none', capsize = 5, ecolor = 'gray')         
         axs.set_xticks([x + 0.5*bar_width for x in x_pos_s])
         axs.set_xticklabels(selectivity_df.columns)
         axs.set_ylabel(title_list_s[i])
-        axs.set_ylim(bottom = -0.1, top = None)
+        if i == 0:
+            axs.set_ylim(bottom = -0.1, top = None)
+        else:
+            axs.set_ylim(bottom = -0.1, top = 1)
         axs.set_title(title_list_s[i])
         axs.yaxis.grid(True) 
         axs.margins(x=0.02)
         axs.legend()
-    
+
     fig_s.tight_layout(pad=1.0)
     fig_s.suptitle(f"Activity by {learning_rule}", y = 1)
     fig_s.show()
@@ -332,13 +364,22 @@ def activity_histogram(activity_df, **kwargs):
 
     DateFolder, time_id = helper.create_data_dir(config=p)
     fig_ad, ax_ad = plt.subplots(2, 2, figsize=fig_size, gridspec_kw=dict(width_ratios=[1, 1]))
+    xmin = min(activity_df.iloc[:,:4].quantile(0.01))
+    xmax = max(activity_df.iloc[:,:4].quantile(0.99))
     for i in range(4):
         axs_ad = ax_ad.flatten()[i]
+        """
         sns.histplot(activity_df, x = activity_df.columns[i], hue='Degree', kde=True, 
                     stat="density", fill = True, alpha = 0.2, 
                     palette = color_list, multiple="layer",
                     common_norm=False, ax = ax_ad.flatten()[i])
-        
+        """
+        sns.kdeplot(
+        data=activity_df, x=activity_df.columns[i], hue="Degree",
+        fill=True, common_norm=False, palette=color_list, clip = (xmin, xmax),
+        alpha=.5, linewidth=0, multiple="layer", ax = ax_ad.flatten()[i]
+        )
+
         axs_ad.margins(x=0.02)
         axs_ad.set_xlabel("Firing rate")
         axs_ad.set_title(f"{activity_df.columns[i]}")
