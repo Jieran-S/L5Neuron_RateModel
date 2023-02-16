@@ -73,7 +73,7 @@ class SimpleNetwork:
         self.start_activity = 0.
         self._init_nonlinearity()
         self._init_update_function()
-        self._init_learningrule()
+        self._init_learningrule() 
         self._init_integrator()
         
     def _init_nonlinearity(self):
@@ -367,22 +367,28 @@ class SimpleNetwork:
         W_mean_sim, W_std_sim = weight_summary(weight_fin, N)
 
         # take the change
-        weight_delta = weight_fin - initial_weights
+        weight_delta = (weight_fin - initial_weights)
         W_delta, W_dstd = weight_summary(weight_delta, N)
+        
+        W_ini, W_istd = weight_summary(initial_weights, N)
 
         # Taking mean over simulation
         W_mean = np.mean(W_mean_sim, axis = 0)
         W_std_mean = np.mean(W_std_sim, axis = 0)
         W_dmean = np.mean(W_delta, axis = 0)
         W_dstd_mean = np.mean(W_dstd, axis = 0)
-        
+        W_imean = np.mean(W_ini, axis = 0)
+        W_istd_mean = np.mean(W_istd, axis = 0)        
+
         # taking the std of the mean value
         W_mean_std = np.nanstd(W_mean_sim, axis = 0)
         W_dmean_std = np.nanstd(W_delta, axis = 0)
+        W_imean_std = np.nanstd(W_ini, axis = 0)
 
         # Average over all simulations
         return np.stack([W_mean, W_mean_std, W_std_mean,
-                        W_dmean, W_dmean_std, W_dstd_mean], axis = 0).reshape(6,-1)
+                        W_imean, W_imean_std, W_istd_mean,
+                        W_dmean, W_dmean_std, W_dstd_mean,], axis = 0).reshape(9,-1)
 
     def selectivity_eva_intrasim(self, activity_not_reliable):
         """

@@ -280,6 +280,7 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                     'PV-CS', 'PV-CC', 'PV-PV', 'PV-SST',
                     'SST-CS', 'SST-CC', 'SST-PV', 'SST-SST']
     weight_ind = [  'Mean_weight',  'Std_mean_W',     'Mean_std_W',      
+                    'Mean_Wini',    'Std_mean_Wini',  'Mean_std_Wini',
                     'Mean_Wdel',    'Std_mean_Wdel',  'Mean_std_Wdel']
     weight_df = pd.DataFrame(weight_data, columns=weight_col, index = weight_ind)
 
@@ -322,12 +323,16 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
     # plot all potential graphs for information extraction
     if visualization_mode:
         fig_size = (10,11)
-        color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
+        # color_list = ['blue', 'salmon', 'lightseagreen', 'mediumorchid']
+        # line_col    = ['darkblue','deeppink','seagreen','fuchsia']
+        color_list = ["#FF0000", "#00A08A","#F2AD00","#5BBCD6"]
+        line_col    = ["#800000",'#02401B','#B3672B','#046C9A']
+
         DateFolder, time_id = helper.create_data_dir(config=p)
         saving = False
 
         ########## bar plot for weight change and final weight value ##########
-        vis.weights_barplot(weight_df, 
+        vis.weights_barplot(weight_df, line_col = line_col, 
                         color_list = color_list, learning_rule = learning_rule,
                         config = p, saving = saving)
 
@@ -337,7 +342,6 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                                 config = p, saving = saving)
 
         ########## activity plot with error bar ##########
-        line_col    = ['darkblue','deeppink','seagreen','fuchsia']
         neuron_list = ['CS','CC','PV','SST']
 
         # prepare the data
@@ -404,9 +408,12 @@ def run_simulation(Amplitude, Steady_input, spatialF, temporalF, spatialPhase,
                                     "PV": act_ser_list[2],"SST":act_ser_list[3]})
         activity_df['Degree'] = np.repeat(p.degree, int(activity_df.shape[0]/4))
 
+        histo_color_list = ['salmon', 'lightseagreen', 'mediumorchid','blue']
+        # histo_color_list = ["#5BBCD6","#00A08A","#F2AD00","#FF0000"]
         vis.activity_histogram(activity_df, 
-                            color_list = color_list, fig_size = fig_size, learning_rule = learning_rule,
-                            config = p, saving = saving)        
+                            color_list = histo_color_list,
+                            fig_size = fig_size, learning_rule = learning_rule,
+                            config = p, saving = saving)       
  
          ##### TODO: Correlation between the mean weights and its activity #####
 
@@ -476,6 +483,71 @@ if __name__ == "__main__":
                         tau_learn=p.tau_learn,
                         tau_threshold=p.tau_threshold,
                         visualization_mode=True,)
+#%% Simulation selectivity overiew
+if __name__ == "__main__":
+    if p.tuning != True:
+        
+        Dic_list = []
+        for rule in p.rule_list[1:]:
+            sim_dic, _, _ = run_simulation( Amplitude= p.amplitude,
+                                Steady_input= p.steady_input,
+                                spatialF=p.spatialF,
+                                temporalF=p.temporalF,
+                                spatialPhase=p.spatialPhase,
+                                learning_rule= rule, 
+                                phase_list=p.phase_list,
+                                neurons=p.neurons,
+                                Ttau =p.Ttau,
+                                tau=p.tau,
+                                tau_learn=p.tau_learn,
+                                tau_threshold=p.tau_threshold,
+                                visualization_mode=True,)
+            Dic_list.append(sim_dic)
+        
+        fig_size = (15,17)
+        color_list = ["#FF0000", "#00A08A","#F2AD00","#5BBCD6"]
+        line_col    = ["#800000",'#02401B','#B3672B','#046C9A']
+        saving = True
+        DateFolder, time_id = helper.create_data_dir(config=p)
+
+        title_list_s = ['Orientational selectivity (OS)',
+                        'Directional selectivity (DS)', 'Orientational selectivity_p (OS_p)']
+
+        learn_list = ['BCM','slide_BCM', 'oja','Cov']
+
+        fig_s, ax_s = plt.subplots(3,1, figsize=fig_size)
+        bar_width = 0.45
+        x_pos_i = [0,1,2,3,5,6,7,8,10,11,12,13,15,16,17,18]
+        x_pos_w = [x + 0.45 for x in x_pos_i]
+
+        for i in range(3):
+            axs = ax_s.flatten()[i]
+            for ind, selectivityDF in enumerate(Dic_list):
+                selectivity_df_bl = selectivityDF['selectivity_df'].loc['before']
+                selectivity_df = selectivityDF['selectivity_df'].loc['after']
+                axs.bar(x_pos_i[ind::4], list(selectivity_df_bl.iloc[3*(i+1),]), color = color_list[ind],
+                        align='center', alpha=0.5, label = f'{learn_list[ind]}_before', width = bar_width)
+                axs.bar(x_pos_w[ind::4], list(selectivity_df.iloc[3*(i+1),]), color = line_col[ind],
+                        align='center', alpha=0.5, label = f'{learn_list[ind]}_after', width = bar_width)
+                axs.errorbar(x_pos_i[ind::4], list(selectivity_df_bl.iloc[3*(i+1),]),yerr = list(selectivity_df_bl.iloc[3*(i+1)+2,]),
+                            fmt = 'none', capsize = 5, ecolor = 'gray')
+                axs.errorbar(x_pos_w[ind::4], list(selectivity_df.iloc[3*(i+1),]),yerr = list(selectivity_df.iloc[3*(i+1)+2,]),
+                    fmt = 'none', capsize = 5, ecolor = 'gray')
+
+            axs.set_xticks(np.mean([x_pos_i[::4],x_pos_i[1::4],x_pos_i[2::4],x_pos_i[3::4]], axis = 0) + 0.5*bar_width)
+            axs.set_xticklabels(["CC","CS","PV","SST"])
+            axs.set_ylabel(title_list_s[i])
+            axs.set_ylim(bottom = -0.05, top = 1)
+            axs.set_title(f"{title_list_s[i]}")
+            axs.yaxis.grid(True) 
+            axs.margins(x=0.02)
+            axs.legend()   
+            
+        fig_s.tight_layout(pad=1.0)
+        # fig_s.show()
+        if saving:
+            fig_s.savefig(f'data/{DateFolder}/{time_id}_selectivity_all.png', dpi=100)
+
 
 #%%  Hyper parameter tuning
 if __name__ == "__main__":            

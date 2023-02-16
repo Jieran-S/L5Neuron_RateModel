@@ -107,8 +107,8 @@ degree = [0, 90, 180, 270]
 
 # Input form and amplitude distributionInput_negative()
 steady_input = [0,0,0,0] #[1,1,1,1]
-amplitude = [17.34637650447213, 3.485229955567148, 6.685986709907562, 3.7992341006167583]
-            #[6,5,10,5]
+amplitude = [6,5,10,5]
+# [17.34637650447213, 3.485229955567148, 6.685986709907562, 3.7992341006167583]
 spatialF = 10
 temporalF = 50
 spatialPhase = 1
@@ -121,7 +121,7 @@ If change temporalF, need to change:
 """
 
 ########## Hyperparameter tuning ##########
-tuning = True
+tuning = False
 
 # steady loss function parameter. If not tuning the network for steady performance, no need to use this parameter
 Max_act = 15
