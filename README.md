@@ -59,6 +59,9 @@ Additionally, to train the model to our deserable configuration, we need to set 
 
 ## 5. Output
 
+![sim_dic_structure](https://user-images.githubusercontent.com/91852421/219392866-1532b666-5819-4b24-92ca-5c3b56bb8b12.png)
+
+
 For training of the network on single instance, the simulator returns a dictionary with the following returning values:
 
 * ```weight_df```: a dataframe showing the synaptic weights from each unique pair of simulation+radian combination. 
